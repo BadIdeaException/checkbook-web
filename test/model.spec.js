@@ -19,6 +19,44 @@ describe('Category', function() {
 	});
 });
 
+describe('Entry', function() {
+	beforeEach(angular.mock.module('Checkbook'));
+
+	var Entry,
+		$httpBackend;
+
+	const ENTRY = {
+		id: 1,
+		caption: '1',
+		value: 100,
+		datetime: new Date(0),
+		category: 1,
+		details: '1'
+	};
+
+	beforeEach(inject(function($injector) {
+		Entry = $injector.get('Entry');
+		$httpBackend = $injector.get('$httpBackend');
+	}));
+
+	it('should have virtual property monthid', function() {
+		var entry = new Entry(ENTRY);
+
+		// Property should exist and have the correct value
+		expect(entry).to.have.property('monthid', 0);
+		// It should be read-only
+		expect(function() { entry.monthid = 5 }).to.throw(TypeError);
+	});
+
+	it('should use the monthid in the url', function() {
+		var entry = new Entry(ENTRY);
+		$httpBackend.expectGET('/months/' + entry.monthid + '/categories/' + entry.category + '/entries/' + entry.id).respond(ENTRY);
+
+		entry.$get();
+		expect($httpBackend.flush).to.not.throw();
+	});
+})
+
 describe('Month', function() {
 	beforeEach(angular.mock.module('Checkbook'));
 
@@ -51,13 +89,13 @@ describe('Month', function() {
 		}));
 
 		beforeEach(function() {
-			month = new Month({ id: 1 });
+			month = new Month({ id: 1, value: 1234 });
 			$httpBackend.whenGET('/months/' + month.id + '/categories').respond(CATEGORIES);
 		});
 
 		it('should return the right kind of objects', function() {
 			var categories = month.getCategories();
-			$httpBackend.flush();
+			expect($httpBackend.flush).to.not.throw();
 
 			expect(categories).to.not.be.empty;
 			var category = categories[0];
@@ -65,13 +103,13 @@ describe('Month', function() {
 			expect(category).to.be.an.instanceOf(Category);
 			expect(category).to.have.property('value');	
 			expect(category).to.respondTo('getEntries');		
+			expect(category).to.respondTo('getTotal');
 			expect(category).to.have.property('monthid', month.id);
 		});
 
 		it('should get categories from /months/:monthid/categories if none are cached', function() {			
-			// This will fail if not hitting /months/1/categories
 			var categories = month.getCategories();
-			$httpBackend.flush();
+			expect($httpBackend.flush).to.not.throw();
 
 			expect(categories).to.have.length(CATEGORIES.length);		
 			// Map the result to values only to be able to check for deep equality now
@@ -94,12 +132,39 @@ describe('Month', function() {
 			expect(categories).to.deep.equal(categories);
 		});
 	});
+
+	describe('.getTotal', function() {
+		var month;
+		const CATEGORIES = [ { id: 1, caption: '1', value: 100 }, { id: 2, caption: '2', value: 200 }];		
+
+		beforeEach(function() {
+			month = new Month({ id: 1, value: 1234 });
+		});
+
+		it('should use the value property when categories have not been loaded yet', function() {
+			delete month.categories;
+			expect(month.getTotal()).to.equal(month.value);
+		});
+
+		it('should total up the categories\' values when they are available', function() {
+			$httpBackend.whenGET('/months/' + month.id + '/categories').respond(CATEGORIES);
+			// Force loading
+			var categories = month.getCategories();
+			expect($httpBackend.flush).to.not.throw();
+
+			var total = categories.reduce(function(total, category) {
+				return total + category.value; // Can use the value directly here because no entries are loaded anyway
+			}, 0);
+			expect(month.getTotal()).to.equal(total);
+		});
+	});
 });
 
-describe('Category for month', function() {
+describe('Category (as returned by Month.getCategories)', function() {
 	beforeEach(angular.mock.module('Checkbook'));
 
 	var Month;
+	var Entry;
 	var $httpBackend;
 
 	var category; 
@@ -110,146 +175,59 @@ describe('Category for month', function() {
 
 	beforeEach(inject(function($injector) {
 		Month = $injector.get('Month');
+		Entry = $injector.get('Entry');
 		$httpBackend = $injector.get('$httpBackend');
 	}));
 
 	beforeEach(function() {
 		month = new Month({ id: 1 });
-		const CATEGORIES = [ { id : 1, caption: '1', value: 1 }];
+		const CATEGORIES = [ { id : 1, caption: '1', value: 1234 }];
 		$httpBackend.whenGET('/months/' + month.id + '/categories').respond(CATEGORIES);
 		var categories = month.getCategories();
 		$httpBackend.flush();
 		category = categories[0];
 	});
 
-	it('.getEntries should get Entries from /months/:monthid/categories/:category/entries when not loaded', function() {
-		$httpBackend.whenGET('/months/' + 1 +'/categories/' + 1 + '/entries').respond(ENTRIES);
-
-		var entries = category.getEntries();
-		$httpBackend.flush();
-
-		expect(entries).to.not.be.empty;
-		var values = entries.map(function(entry) { 
-			return { id: entry.id, caption: entry.caption, value: entry.value, datetime: entry.datetime, details: entry.details, category: entry.category }
+	describe('.getEntries', function() {
+		beforeEach(function() {
+			$httpBackend.whenGET('/months/' + 1 +'/categories/' + 1 + '/entries').respond(ENTRIES);
 		});
-		expect(values).to.deep.equal(ENTRIES);
-	})
 
-})
+		it('should get Entries from /months/:monthid/categories/:category/entries when not loaded', function() {
+			var entries = category.getEntries();
+			expect($httpBackend.flush).to.not.throw();
 
-// 	it('.query should return a hash', function() {
-// 		var CATEGORIES = [ { id: 1, caption: '1', value: 100 }, { id: 2, caption: '2', value: 200 }];
-// 		$httpBackend.whenGET('/months/1/categories').respond(CATEGORIES);
-		
-// 		var categories = Category.query({ month: 1 });
-// 		$httpBackend.flush();
+			expect(entries).to.not.be.empty;
+			expect(entries[0]).to.be.an.instanceOf(Entry);
+			var values = entries.map(function(entry) { 
+				return { id: entry.id, caption: entry.caption, value: entry.value, datetime: entry.datetime, details: entry.details, category: entry.category }
+			});
+			expect(values).to.deep.equal(ENTRIES);
+		});
 
-// 		var hash = CATEGORIES.reduce(function(hash,item) {
-// 			hash[item.id] = item;
-// 			return hash;
-// 		}, {});
-// 		// Best way to check for identical structures without caring
-// 		// about actual object identity:
-// 		expect(JSON.stringify(categories)).to.equal(JSON.stringify(hash));
-// 	});	
-	
-// 	it('.getTotal should use own value when entries are not loaded', function() {
-// 		var category = new Category({ id: 1, caption: '1', value: 100 });
-// 		$httpBackend.whenGET('/months/1/categories/1/entries').respond([]);
-		
-// 		expect($httpBackend.flush).to.throw(Error); // Should not hit the network
-// 		expect(category.entries).to.not.be.defined;
-// 		expect(category.getTotal()).to.equal(100);
-// 	});
-	
-// 	it('.getTotal should sum up entries when loaded', function() {
-// 		var category = new Category({ id: 1, value: 100 });
-// 		$httpBackend
-// 			.whenGET('/months/1/categories/1/entries')
-// 			.respond(
-// 				[ { id: 1, caption: '1', value: 100, datetime: '2015-03-22 14:22', category: 1 }, 
-// 				  { id: 2, caption: '2', value: 200, datetime: '2015-03-22 14:25', category: 1 } ]);
+		it('should use cached entries when available', function() {
+			category.entries = ENTRIES.map(function(entry) { return new Entry(entry); });
 
-// 		entries = category.getEntries(); // Force entry loading
-// 		$httpBackend.flush();
-// 		expect(category.entries).to.be.defined;
-// 		expect(category.getTotal()).to.equal(300);
-// 	});});
+			var entries = category.getEntries();
+			expect($httpBackend.flush).to.throw();
+			expect(entries).to.deep.equal(category.entries);
+		});
+	});
 
-// describe('Month', function() {
-// 	beforeEach(angular.mock.module('Checkbook'));	
-	
-// 	var Month;
-// 	var $httpBackend;
+	describe('.getTotal', function() {
+		it('should use the value property when entries are not yet loaded', function() {
+			delete category.entries;
 
-// 	beforeEach(inject(function($injector) {
-// 		Month = $injector.get('Month');
-// 		$httpBackend = $injector.get('$httpBackend');
-// 	}));
+			expect(category.getTotal()).to.equal(category.value);
+		});
 
-// 	it('should have $query and $get, but not $save, $delete and $remove', function() {
-// 		expect(Month).itself.to.respondTo('query');
-// 		expect(Month).itself.to.respondTo('get');
-// 		var month = new Month();
-// 		expect(month).to.not.respondTo('$save');
-// 		expect(month).to.not.respondTo('$delete');
-// 		expect(month).to.not.respondTo('$remove');
-// 	});
-	
-// 	it('.query should return a hash', function() {
-// 		var MONTHS = [ { id: 1, value: 100 }, { id: 2, value: 200 }];
-// 		$httpBackend.whenGET('/months').respond(MONTHS);
-		
-// 		var months = Month.query();
-// 		$httpBackend.flush();
+		it('should total up the entries\' values when they are available', function() {
+			category.entries = ENTRIES.map(function(entry) { return new Entry(entry); });
+			var total = category.entries.reduce(function(total, entry) {
+				return total + entry.value;
+			},0);
 
-// 		var hash = MONTHS.reduce(function(hash,item) {
-// 			hash[item.id] = item;
-// 			return hash;
-// 		}, {});
-// 		// Best way to check for identical structures without caring
-// 		// about actual object identity:
-// 		expect(JSON.stringify(months)).to.equal(JSON.stringify(hash));
-// 	});
-	
-// 	it('.getCategories should load from /months/:month/categories initially', function() {
-// 		var month = new Month({ id: 1, value: 100 });
-// 		const CATEGORIES = [ { id: 1, caption: '1', value: 100 } ];
-// 		$httpBackend.whenGET('/months/1/categories').respond(CATEGORIES);
-		
-// 		var categories = month.getCategories();
-// 		$httpBackend.flush();
-		
-// 		expect(JSON.stringify(categories)).to.equal(JSON.stringify({ 1: CATEGORIES[0] }));
-// 	});
-
-// 	it('.getCategories should use cached values when available', function() {
-// 		var month = new Month({ id: 1, value: 100 });
-// 		month.categories = { id: 1, caption: '1', value: 100 };
-// 		$httpBackend.whenGET('/months/1/categories').respond([]);
-		
-// 		var categories = month.getCategories();
-		
-// 		expect($httpBackend.flush).to.throw(Error); // Do not hit the network
-// 		expect(categories).to.deep.equal(month.categories);
-// 	});
-
-// 	it('.getTotal should use own value when categories are not loaded', function() {
-// 		var month = new Month({ id: 1, value: 100 });
-// 		$httpBackend.whenGET('/months/1/categories').respond([]);
-		
-// 		expect($httpBackend.flush).to.throw(Error); // Should not hit the network
-// 		expect(month.categories).to.not.be.defined;
-// 		expect(month.getTotal()).to.equal(100);
-// 	});
-	
-// 	it('.getTotal should sum up categories when loaded', function() {
-// 		var month = new Month({ id: 1, value: 100 });
-// 		$httpBackend.whenGET('/months/1/categories').respond([ { id: 1, caption: '1', value: 100 }, { id: 2, caption: '2', value: 200 }]);
-
-// 		categories = month.getCategories(); // Force category loading
-// 		$httpBackend.flush();
-// 		expect(month.categories).to.be.defined;
-// 		expect(month.getTotal()).to.equal(300);
-// 	});
-// });
+			expect(category.getTotal()).to.equal(total);
+		})
+	});
+});

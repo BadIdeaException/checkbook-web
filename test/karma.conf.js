@@ -17,6 +17,7 @@ module.exports = function(config) {
     files: [
         'node_modules/chai-angular/chai-angular.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.js',
+        'bower_components/angular-restmod/dist/angular-restmod-bundle.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-cookies.js',

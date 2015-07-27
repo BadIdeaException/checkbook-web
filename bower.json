@@ -1,6 +1,7 @@
 {
   "name": "Checkbook Web Client",
   "dependencies": {
-    "twitter-bootstrap-sass": "~3.3.3"
+    "twitter-bootstrap-sass": "~3.3.3",
+    "angular-restmod": "~1.1.9"
   }
 }

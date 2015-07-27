@@ -39,7 +39,12 @@ Vagrant.configure(2) do |config|
   # for testing)
   config.vm.provision "shell" do |shell|
     shell.name = "Install vm os packages"
-    shell.inline = "apt-get update && apt-get install -y build-essential libfontconfig"
+    shell.inline = "apt-get update && apt-get install -y build-essential libfontconfig git"
+  end
+
+  config.vm.provision "shell" do |shell|
+    shell.name = "Install bower"
+    shell.inline = "npm install -g bower grunt-cli"
   end
 
   config.vm.provision "shell" do |shell|

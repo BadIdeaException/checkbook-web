@@ -5,14 +5,20 @@ var module = angular.module('Checkbook.Model', []);
 module.factory('Entry', [ '$resource', function($resource) {
 	var Entry = $resource('/months/:monthid/categories/:category/entries/:entry', 
 		{ 
-			monthid: function() {
-				var month = this.datetime.getMonth();
-				var year = this.datetime.getFullYear();
-				return (year - 1970) * 12 + month;
-			},
+			monthid: '@monthid',
 			category: '@category', 
 			entry: '@id' 
 		});
+
+	// Read only property to calculate the monthid from the datetime 
+	Object.defineProperty(Entry.prototype, 'monthid', { 
+		get: function() { 
+			var month = this.datetime.getMonth();
+			var year = this.datetime.getFullYear();
+			return (year - 1970) * 12 + month;
+		}
+	});
+	
 	return Entry;
 }]);
 
@@ -59,6 +65,16 @@ module.factory('Month', [ '$resource', 'Category', 'Entry', function($resource, 
 			self.entries = Entry.query({ monthid: self.monthid, category: self.id });
 			return self.entries;
 		};
+
+		CategoryForMonth.prototype.getTotal = function() {
+			var self = this;
+			if (self.entries) 
+				return self.entries.reduce(function(total, entry) {
+					return total + entry.value;
+				}, 0);
+			else
+				return self.value;
+		}
 	}());
 
 	Month.prototype.getCategories = function() {		
@@ -74,6 +90,17 @@ module.factory('Month', [ '$resource', 'Category', 'Entry', function($resource, 
 				categories.forEach(function (category) { category.monthid = self.id; });
 			});
 		return self.categories;
+	};
+
+	Month.prototype.getTotal = function() {
+		var self = this;
+
+		if (self.categories) 
+			return self.categories.reduce(function(total, category) {				
+				return total + category.getTotal();
+			}, 0);
+		else
+			return self.value;
 	};
 
 	delete Month.prototype.$save;
