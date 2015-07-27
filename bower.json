@@ -1,0 +1,6 @@
+{
+  "name": "Checkbook Web Client",
+  "dependencies": {
+    "twitter-bootstrap-sass": "~3.3.3"
+  }
+}

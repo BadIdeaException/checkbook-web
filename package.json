@@ -1,0 +1,31 @@
+{
+  "name": "Checkbook-web",
+  "version": "0.0.0",
+  "private": true,
+  "scripts": {
+    "start": "node node_modules/http-static/server.js",
+    "test": "./node_modules/karma/bin/karma start test/karma.conf.js"
+  },
+  "dependencies": {
+    "chai": "^2.2.0",
+    "chai-angular": "^1.0.3",
+    "grunt": "^0.4.5",
+    "grunt-contrib-jade": "^0.14.1",
+    "grunt-contrib-sass": "^0.9.2",
+    "grunt-contrib-watch": "^0.6.1",
+    "http-static": "0.0.5",
+    "jade": "^1.9.2",
+    "karma": "^0.12.31",
+    "karma-chai": "^0.1.0",
+    "karma-chai-as-promised": "^0.1.2",
+    "karma-chai-plugins": "^0.5.0",
+    "karma-firefox-launcher": "^0.1.4",
+    "karma-mocha": "^0.2.0",
+    "karma-mocha-reporter": "^1.0.2",
+    "karma-phantomjs-launcher": "^0.2.0",
+    "karma-sinon": "^1.0.4",
+    "mocha": "^2.2.4",
+    "phantomjs": "^1.9.17",
+    "sinon": "^1.14.1"
+  }
+}

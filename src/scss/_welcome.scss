@@ -1,0 +1,25 @@
+.welcome {
+	$text-color: white;
+	
+	color: $text-color;
+	text-align: center;
+	background: url(/img/bills.jpg) no-repeat center center;
+	background-size: cover;
+	
+	.banner {
+		display: inline-block;
+		padding: 2.5em;
+		background-color: rgba(0,0,0,0.15);
+	}
+	
+	h1 {
+		font-weight: bold;
+	}
+}
+
+.welcome-tiles {
+	img {
+		padding: 0;
+		width: 100%;
+	}
+}

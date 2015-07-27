@@ -1,0 +1,17 @@
+doctype html
+html
+	head
+		title="Checkbook"
+		meta(name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no")
+		link(href="//maxcdn.bootstrapcdn.com/bootstrap/3.3.2/css/bootstrap.min.css", rel="stylesheet")
+		link(href="/stylesheets/checkbook.css", rel="stylesheet")
+		
+		include ./includes/scriptload.jade
+	body(ng-app="Checkbook")
+		nav.navbar.navbar-default
+			div.container-fluid
+				a.navbar-brand(href="#") Checkbook
+				ul.navbar-nav.nav.navbar-right
+					li: a(href="#/link") LINK
+					
+		div(ng-view)
