@@ -55,7 +55,23 @@ describe('Entry', function() {
 		entry.$get();
 		expect($httpBackend.flush).to.not.throw();
 	});
-})
+
+	it('should have an id after saving', function() {
+		var values = angular.copy(ENTRY);
+		delete values.id;
+		var entry = new Entry(values);
+
+		// Make sure the id isn't already set
+		expect(entry).to.not.have.property('id');
+		$httpBackend
+			.whenPOST('/months/' + entry.monthid + '/categories/' + entry.category + '/entries')
+			.respond(201, null, { location: '/months/' + entry.monthid + '/categories/' + entry.category + '/entries/' + ENTRY.id });
+
+		entry.$create();
+		$httpBackend.flush();
+		expect(entry).to.have.property('id', ENTRY.id);
+	});
+});
 
 describe('Month', function() {
 	beforeEach(angular.mock.module('Checkbook'));

@@ -8,6 +8,15 @@ module.factory('Entry', [ '$resource', function($resource) {
 			monthid: '@monthid',
 			category: '@category', 
 			entry: '@id' 
+		}, {
+			create: {
+				method: 'POST',
+				transformResponse: function(data, headers) {
+					console.log(this);
+					console.log(headers('location'));
+					return data;
+				}
+			}
 		});
 
 	// Read only property to calculate the monthid from the datetime 
