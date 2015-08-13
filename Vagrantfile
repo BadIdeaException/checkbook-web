@@ -19,6 +19,9 @@ Vagrant.configure(2) do |config|
   # Share project folder as /home/checkbook-web
   config.vm.synced_folder ".", "/home/checkbook-web"
 
+  # Enable agent forwarding to use the host key when communicating with github
+  config.ssh.forward_agent = true
+
   # Make ports 8080 and 8443 of the vm available as ports 80 and 
   # 443 on the host
   # This will allow to access the server from the host browser
