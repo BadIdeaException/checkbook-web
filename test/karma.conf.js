@@ -10,18 +10,18 @@ module.exports = function(config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha', 'chai-as-promised', 'chai'],
+    frameworks: ['mocha', 'sinon-chai', 'chai-as-promised', 'chai'],
 
 
     // list of files / patterns to load in the browser
     files: [
         'node_modules/chai-angular/chai-angular.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.js',
+        'bower_components/uri-templates/uri-templates.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-cookies.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.js',
-        'bower_components/uri-templates/uri-templates.js',
         'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-mocks.js',
         'src/js/app.js',
         'src/js/**/*.js',
@@ -69,7 +69,7 @@ module.exports = function(config) {
     // browsers: ['Firefox'],
 
 
-    plugins: ['karma-phantomjs-launcher', 'karma-mocha', 'karma-chai', 'karma-chai-as-promised', 'karma-mocha-reporter'],
+    plugins: ['karma-phantomjs-launcher', 'karma-mocha', 'karma-chai', 'karma-chai-as-promised', 'karma-sinon-chai', 'karma-mocha-reporter'],
 
 
     // Continuous Integration mode
