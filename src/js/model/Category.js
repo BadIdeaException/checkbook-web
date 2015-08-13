@@ -87,7 +87,36 @@ module.factory('Category', [ '$http', function($http) {
 			});
 
 		return self;
-	}
+	};
+
+	Category.prototype.$update = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand(self);
+
+		// Prepare a data object that won't include the $ properties like $resolved
+		var data = {};
+		Object.keys(self).forEach(function(key) {
+			if (key[0] !== '$') data[key] = self[key];
+		});
+
+		self.$promise = $http
+			.put(uri, data)
+			.finally(function(x) { 
+				self.$resolved = true;
+			});
+
+		return self;	
+	};
+
+	Category.prototype.$save = function() {
+		var self = this;
+
+		if (self.id === undefined || self.id === null) 
+			return self.$create();
+		else
+			return self.$update();
+	};
 
 	return Category;
 }]);

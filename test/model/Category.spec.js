@@ -69,7 +69,7 @@ describe('Category', function() {
 			expect(category).to.have.property(key, RESPONSE[key]);
 	});
 
-	it('should post to the server when calling .$create', function() {
+	it('should POST to the server when calling .$create', function() {
 		var data = angular.copy(CATEGORY);
 		delete data.id;
 
@@ -85,5 +85,32 @@ describe('Category', function() {
 		// id should be set after $create - the server provided it in the location header
 		expect(category).to.have.property('id', CATEGORY.id);
 		expect(category).to.have.property('$resolved', true);
+	});
+
+	it('should PUT to the server when calling .$update', function() {
+		$httpBackend
+			.expectPUT('/categories/' + CATEGORY.id, CATEGORY)
+			.respond(204, null, { location: '/categories/' + CATEGORY.id });
+
+		var category = new Category(CATEGORY);
+
+		category.$update();
+		$httpBackend.flush();
+
+		expect(category).to.have.property('$resolved', true);		
+	});
+
+	it('.$save should call .$create when no id is set and .$update when an id is set', function() {
+		var category = new Category(CATEGORY);
+		var $create = sinon.spy(category, '$create');
+		var $update = sinon.spy(category, '$update');
+
+		delete category.id;
+		category.$save();
+		expect($create).to.have.been.called;
+
+		category.id = CATEGORY.id;
+		category.$save();
+		expect($update).to.have.been.called;
 	});
 });
