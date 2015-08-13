@@ -20,28 +20,6 @@ describe('Category', function() {
 			expect(category).to.have.property(key, CATEGORY[key]);
 	});
 
-	it('should update itself when calling .get', function() {
-		const RESPONSE = { id: 1, caption: 'new caption' };
-
-		$httpBackend
-			.expectGET('/categories/' + CATEGORY.id)
-			.respond(200, RESPONSE);
-
-		var category = new Category(CATEGORY);
-		category = category.$get();
-		$httpBackend.flush();
-
-		// Check that promise is set correctly
-		expect(category).to.have.property('$promise');
-		expect(category.$promise).to.respondTo('then');
-		// $resolved should be true after server interaction
-		expect(category).to.have.property('$resolved', true);
-
-		// Check that the new values are present
-		for (var key in RESPONSE) 
-			expect(category).to.have.property(key, RESPONSE[key]);
-	});
-
 	it('should get an array of categories when calling .query', function() {
 		const RESPONSE = [ CATEGORY, { id: 2, caption: '2' }];
 		$httpBackend
@@ -67,5 +45,45 @@ describe('Category', function() {
 			for (var key in RESPONSE[i])
 				expect(category).to.have.property(key, RESPONSE[i][key]);
 		}
+	});
+
+	it('should update itself when calling .$get', function() {
+		const RESPONSE = { id: 1, caption: 'new caption' };
+
+		$httpBackend
+			.expectGET('/categories/' + CATEGORY.id)
+			.respond(200, RESPONSE);
+
+		var category = new Category(CATEGORY);
+		category = category.$get();
+		$httpBackend.flush();
+
+		// Check that promise is set correctly
+		expect(category).to.have.property('$promise');
+		expect(category.$promise).to.respondTo('then');
+		// $resolved should be true after server interaction
+		expect(category).to.have.property('$resolved', true);
+
+		// Check that the new values are present
+		for (var key in RESPONSE) 
+			expect(category).to.have.property(key, RESPONSE[key]);
+	});
+
+	it('should post to the server when calling .$create', function() {
+		var data = angular.copy(CATEGORY);
+		delete data.id;
+
+		$httpBackend
+			.expectPOST('/categories', data)
+			.respond(201, null, { location: '/categories/' + CATEGORY.id });
+
+		var category = new Category(data);
+
+		category.$create();
+		$httpBackend.flush();
+
+		// id should be set after $create - the server provided it in the location header
+		expect(category).to.have.property('id', CATEGORY.id);
+		expect(category).to.have.property('$resolved', true);
 	});
 });

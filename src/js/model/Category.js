@@ -1,7 +1,7 @@
 var module = angular.module('Checkbook.Model', []);
 
 module.factory('Category', [ '$http', function($http) {
-	const URI_TEMPLATE = new UriTemplate('/categories/{id}');
+	const URI_TEMPLATE = new URITemplate('/categories/{id}');
 
 	var Category = function(values) {
 		var self = this;
@@ -16,29 +16,8 @@ module.factory('Category', [ '$http', function($http) {
 		});
 	};
 	
-	Category.prototype.$get = function() {
-		var self = this;
-
-		var uri = URI_TEMPLATE.fillFromObject(self);
-		self.$promise = $http
-			.get(uri)
-			.success(function(data) {
-				// Copy new values into self
-				for (key in data) 
-					self[key] = data[key];
-				return self;
-			})
-			.finally(function(x) {
-				// Set resolved to true because server interaction has happened
-				self.$resolved = true;
-				return x;
-			});
-
-		return self;
-	};
-
 	Category.query = function() {
-		var uri = URI_TEMPLATE.fill(function empty(name) { if (name === 'id') return ''; }); // Strip id param from URI
+		var uri = URI_TEMPLATE.expand({ id: '' }); // Strip id param from URI
 		if (uri[uri.length - 1] === '/') uri = uri.substr(0, uri.length - 1) // Strip trailing slash
 
 		var categories = [];
@@ -61,6 +40,54 @@ module.factory('Category', [ '$http', function($http) {
 
 		return categories;
 	};
+
+	Category.prototype.$get = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand(self);
+		self.$promise = $http
+			.get(uri)
+			.then(function success(response) {
+				var data = response.data;
+				// Copy new values into self
+				for (key in data) 
+					self[key] = data[key];
+				return self;
+			})
+			.finally(function(x) {
+				// Set resolved to true because server interaction has happened
+				self.$resolved = true;
+				return x;
+			});
+
+		return self;
+	};
+
+	Category.prototype.$create = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand({ id: '' }) // Strip id param from URI template
+		if (uri[uri.length - 1] === '/') uri = uri.substr(0, uri.length - 1) // Strip trailing slash from URI
+
+		// Prepare a data object that won't include the $ properties like $resolved
+		var data = {};
+		Object.keys(self).forEach(function(key) {
+			if (key[0] !== '$') data[key] = self[key];
+		});
+
+		self.$promise = $http
+			.post(uri, data) // POST the data - this will not include the $ properties like $resolved
+			.then(function success(response) {
+				// Set id property from location header in the server response
+				var location = response.headers('location');
+				self.id = Number(new URI(location).segment(-1));
+			})
+			.finally(function(x) {
+				self.$resolved = true;
+			});
+
+		return self;
+	}
 
 	return Category;
 }]);
