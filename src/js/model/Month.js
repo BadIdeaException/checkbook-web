@@ -1,6 +1,6 @@
 var module = angular.module('Checkbook.Model');
 
-module.factory('Month', [ '$http', function($http) {
+module.factory('Month', [ '$http', 'CategoryForMonth', function($http, CategoryForMonth) {
 	const URI_TEMPLATE = new URITemplate('/months/{id}');
 
 	var Month = function(values) {
@@ -61,6 +61,31 @@ module.factory('Month', [ '$http', function($http) {
 			});
 
 		return self;
+	};
+
+	Month.prototype.getCategories = function() {
+		var self = this;
+
+		if (self.categories === undefined || self.categories === null) 
+			self.categories = CategoryForMonth.query(self.id);
+
+		return self.categories;
+	};
+
+	Month.prototype.getTotal = function() {
+		// Possible scenarios:
+		// - The month itself is not yet loaded (this should not be possible, actually)
+		// - The month is loaded, but its categories aren't => use the loaded value
+		// - The categories are being loaded for the first time => use the loaded value
+		// - The categories have been loaded => sum up the categories' values and preclude use of month.value
+		// - One or more category is being reloaded => use the already loaded value
+		var self = this;
+		if (self.categories && self.categories.$resolved)
+			return self.categories.reduce(function(total, category) {
+				return total + category.getTotal();
+			}, 0);
+		else
+			return self.value;
 	};
 
 	return Month;

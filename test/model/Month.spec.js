@@ -4,10 +4,12 @@ describe('Month', function() {
 	const MONTH = { id: 0, value: 100 };
 
 	var Month;
+	var CategoryForMonth;
 	var $httpBackend;
 
 	beforeEach(inject(function($injector) {
 		Month = $injector.get('Month');
+		CategoryForMonth = $injector.get('CategoryForMonth');
 		$httpBackend = $injector.get('$httpBackend');
 	}));
 
@@ -67,5 +69,54 @@ describe('Month', function() {
 		// Check that the new values are present
 		for (var key in RESPONSE) 
 			expect(month).to.have.property(key, RESPONSE[key]);
+	});
+
+	it('should load categories when calling getCategories for the first time', function() {
+		var query = sinon.spy(CategoryForMonth, 'query');
+
+		var month = new Month(MONTH);
+		var categories = month.getCategories();
+
+		expect(query).to.have.been.calledWith(MONTH.id);
+		query.restore();
+	});
+
+	it('should use cached categories when calling getCategories subsequently', function() {
+		var month = new Month(MONTH);
+
+		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value }];
+		CATEGORIES.$resolved = true;
+		month.categories = CATEGORIES;
+
+		expect(month.getCategories()).to.equal(CATEGORIES);
+	});
+
+	it('should use own value when calling getTotal and categories haven\'t been loaded', function() {
+		var month = new Month(MONTH);
+
+		// Case 1: categories haven't been loaded yet
+		expect(month.getTotal()).to.equal(month.value);
+
+		// Case 2: loading is in progress but hasn't completed
+		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value + 1 }];
+
+		month.categories = CATEGORIES;
+		month.categories.$resolved = false;
+		expect(month.getTotal()).to.equal(month.value);		
+	});
+
+	it('should compute total value from categories if they are available', function() {
+		var month = new Month(MONTH);
+
+		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value + 1 },
+			{ id: 2, caption: '2', value: MONTH.value + 2 }];
+
+		month.categories = CATEGORIES.map(function(category) { return new CategoryForMonth(category); });
+		month.categories.$resolved = true;
+
+		// Expect computed values to be the sum of the categories' values
+		expect(month.getTotal()).to.equal(CATEGORIES.reduce(function(total, category) {
+			return total + category.value; // Can use the value directly since no entries are loaded
+		}, 0));
 	});
 });
