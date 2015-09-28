@@ -125,7 +125,7 @@ describe('CategoryForMonth', function() {
 		category.entries.$resolved = true;
 
 		// Expect computed values to be the sum of the entries' values
-		expect(category.getTotal()).to.equal(ENTRIES.reduce(function(entry, total) {
+		expect(category.getTotal()).to.equal(ENTRIES.reduce(function(total, entry) {
 			return total + entry.value;
 		}, 0));
 	});

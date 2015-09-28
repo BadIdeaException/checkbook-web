@@ -68,7 +68,7 @@ module.factory('CategoryForMonth', [ '$http', 'Entry', function($http, Entry) {
 
 	CategoryForMonth.prototype.getEntries = function() {
 		var self = this;
-		if (!self.entries) 
+		if (self.entries === undefined || self.entries === null) 
 			self.entries = Entry.query(self);
 
 		return self.entries;
@@ -78,7 +78,7 @@ module.factory('CategoryForMonth', [ '$http', 'Entry', function($http, Entry) {
 		var self = this;
 		// Return computed value if entries are present and have finished loading
 		if (self.entries && self.entries.$resolved)
-			return self.entries.reduce(function(entry, total) {
+			return self.entries.reduce(function(total, entry) {
 				return total + entry.value;
 			}, 0);
 		// Otherwise, return own value
