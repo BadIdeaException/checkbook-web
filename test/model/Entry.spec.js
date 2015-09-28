@@ -20,6 +20,20 @@ describe('Entry', function() {
 			expect(entry).to.have.property(key, ENTRY[key]);
 	});
 
+	it('should remember the previous value when assigning a new category', function() {
+		var entry = new Entry(ENTRY);
+		expect(entry._lastSavedCategory).to.not.exist;
+		entry.category++;
+		expect(entry._lastSavedCategory).to.exist.and.equal(ENTRY.category);
+	});
+
+	it('should remember the previous month id when assigning a new date', function() {
+		var entry = new Entry(ENTRY);
+		expect(entry._lastSavedMonthId).to.not.exist;
+		entry.datetime = new Date();
+		expect(entry._lastSavedMonthId).to.exist.and.equal(0);
+	});
+
 	it('.equals should be true for identical entries', function() {
 		var entry = new Entry(ENTRY);
 		var same = new Entry(ENTRY);
@@ -100,6 +114,9 @@ describe('Entry', function() {
 		expect(entry).to.have.property('id', ENTRY.id);
 		// $resolved should be true after server interaction
 		expect(entry).to.have.property('$resolved', true);
+		// Last saved values should be forgotten
+		expect(entry).to.not.have.property('_lastSavedCategory');
+		expect(entry).to.not.have.property('_lastSavedMonthId');
 	});
 
 	it('should PUT to the server when calling .$update', function() {
@@ -117,6 +134,9 @@ describe('Entry', function() {
 		expect(entry.$promise).to.respondTo('then');
 		// $resolved should be true after server interaction
 		expect(entry).to.have.property('$resolved', true);		
+		// Last saved values should be forgotten
+		expect(entry).to.not.have.property('_lastSavedCategory');
+		expect(entry).to.not.have.property('_lastSavedMonthId');
 	});
 
 	it('.$save should call .$create when no id is set and .$update when an id is set', function() {

@@ -8,6 +8,32 @@ module.factory('Entry', [ '$http', function($http) {
 
 		self.$resolved = false;
 
+		// Define a setter for the category property to remember the last saved value for this property
+		// This will be required to construct the proper resource URI when hitting the server for this entry
+		var _category;
+		Object.defineProperty(self, 'category', {
+			enumerable: true,
+			get: function() { return _category; },
+			set: function(category) { 
+				if (this._lastSavedCategory === undefined || this._lastSavedCategory === null)
+					this._lastSavedCategory = this.category;
+				_category = category;
+			}
+		});
+
+		// Define a setter for the datetime property to remember the last saved value for this property
+		// This will be required to construct the proper resource URI when hitting the server for this entry
+		var _datetime;
+		Object.defineProperty(self, 'datetime', {
+			enumerable: true,
+			get: function() { return _datetime; },
+			set: function(datetime) {
+				if (this.datetime && (this._lastSavedMonthId === undefined || this._lastSavedMonthId === null))
+					this._lastSavedMonthId = this.getMonthId();
+				_datetime = datetime;
+			}
+		});
+
 		Object.keys(values).forEach(function(key) {
 			if (key === 'datetime' && !(values[key] instanceof Date))
 				self.datetime = new Date(values[key])
@@ -73,7 +99,12 @@ module.factory('Entry', [ '$http', function($http) {
 	Entry.prototype.$get = function() {
 		var self = this;
 
-		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+		var uri = URI_TEMPLATE.expand({ 
+			monthid: (self._lastSavedMonthId || self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory || self.category), // Try last saved category, if that doesn't exist, use the current one
+			id: self.id 
+		});
+
 		self.$promise = $http
 			.get(uri)
 			.then(function success(response) {
@@ -95,7 +126,9 @@ module.factory('Entry', [ '$http', function($http) {
 	Entry.prototype.$create = function() {
 		var self = this;
 
+		// No need to try any last saved values when creating a new entry
 		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category });
+
 		if (uri[uri.length - 1] === '/') uri = uri.substr(0, uri.length - 1) // Strip trailing slash from URI
 
 		// Prepare a data object that won't include the $ properties like $resolved
@@ -113,6 +146,7 @@ module.factory('Entry', [ '$http', function($http) {
 			})
 			.finally(function(x) {
 				self.$resolved = true;
+				delete self._lastSavedCategory; delete self._lastSavedMonthId;
 				return x;
 			});
 
@@ -122,7 +156,11 @@ module.factory('Entry', [ '$http', function($http) {
 	Entry.prototype.$update = function() {
 		var self = this;
 
-		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+		var uri = URI_TEMPLATE.expand({ 
+			monthid: (self._lastSavedMonthId || self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory || self.category), // Try last saved category, if that doesn't exist, use the current one
+			id: self.id 
+		});
 
 		// Prepare a data object that won't include the $ properties like $resolved
 		var data = {};
@@ -134,6 +172,7 @@ module.factory('Entry', [ '$http', function($http) {
 			.put(uri, data)
 			.finally(function(x) { 
 				self.$resolved = true;
+				delete self._lastSavedCategory; delete self._lastSavedMonthId;
 				return x;
 			});
 
@@ -152,7 +191,11 @@ module.factory('Entry', [ '$http', function($http) {
 	Entry.prototype.$delete = function() {
 		var self = this;
 
-		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+		var uri = URI_TEMPLATE.expand({ 
+			monthid: (self._lastSavedMonthId || self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory || self.category), // Try last saved category, if that doesn't exist, use the current one
+			id: self.id 
+		});
 
 		self.$promise = $http
 			.delete(uri);
