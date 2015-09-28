@@ -16,16 +16,16 @@ module.exports = function(config) {
     // list of files / patterns to load in the browser
     files: [
         'node_modules/chai-angular/chai-angular.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular.js',
-        'bower_components/angular-restmod/dist/angular-restmod-bundle.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-route.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-animate.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-cookies.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-resource.js',
-        'http://ajax.googleapis.com/ajax/libs/angularjs/1.3.14/angular-mocks.js',
+        'bower_components/angular/angular.js',
+        'bower_components/uri.js/src/URI.js',
+        'bower_components/uri.js/src/URITemplate.js',
+        'bower_components/angular-route/angular-route.js',
+        'bower_components/angular-animate/angular-animate.js',
+        'bower_components/angular-cookies/angular-cookies.js',
+        'bower_components/angular-mocks/angular-mocks.js',
         'src/js/app.js',
-        'src/js/*.js',
-        'test/*.spec.js'
+        'src/js/**/*.js',
+        'test/**/*.spec.js'
     ],
 
 

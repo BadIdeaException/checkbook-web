@@ -1,5 +1,5 @@
 "use strict";
-var app = angular.module('Checkbook', [ 'ngRoute', 'ngResource', 'restmod', 'Checkbook.Model' ]);
+var app = angular.module('Checkbook', [ 'ngRoute', 'Checkbook.Model' ]);
 
 app.config([ '$routeProvider', function($routeProvider) {
 	$routeProvider
