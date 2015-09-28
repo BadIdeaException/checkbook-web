@@ -1,0 +1,162 @@
+var module = angular.module('Checkbook.Model');
+
+module.factory('Entry', [ '$http', function($http) {
+	const URI_TEMPLATE = new URITemplate('/months/{monthid}/categories/{category}/entries/{id}');
+
+	var Entry = function(values) {
+		var self = this;
+
+		self.$resolved = false;
+
+		Object.keys(values).forEach(function(key) {
+			if (key === 'datetime' && !(values[key] instanceof Date))
+				self.datetime = new Date(values[key])
+			else
+				self[key] = values[key];
+
+		});
+	}
+
+	Entry.prototype.getMonthId = function() {
+		var self = this;
+
+		var month = self.datetime.getMonth();
+		var year = self.datetime.getFullYear();
+		return (year - 1970) * 12 + month;
+	}
+
+	/**
+	 * Will return true if other is an Entry with identical
+	 * caption, value, category, details and datetime.
+	 */
+	Entry.prototype.equals = function(other) {
+		var self = this;
+		return (other instanceof Entry) &&
+			self.caption === other.caption &&
+			self.value === other.value &&
+			self.category === other.category &&
+			self.datetime.getTime() === other.datetime.getTime() &&
+			self.details === other.details;
+	}
+
+	// Can be called either as query(monthid, category) or 
+	// as query({ monthid: monthid, category: category })
+	Entry.query = function(arg1, arg2) {
+		if (arg2 === undefined || arg2 === null) {
+			arg2 = arg1.category;
+			arg1 = arg1.monthid;
+		}
+
+		var uri = URI_TEMPLATE.expand({ monthid: arg1, category: arg2, id: '' }); // Remove id from URI
+		if (uri[uri.length-1] === '/') uri = uri.substr(0, uri.length-1); // Remove trailing slash
+
+		function transformResponse(data) {
+			// Transform data into Entry objects
+			return data.map(function createEntry(item) {
+				var entry = new Entry(item);
+				entry.$resolved = true; // The new entry has been loaded from the server
+				return entry;
+			});
+		}
+
+		var entries = [];
+		entries.$promise = $http
+			.get(uri, { transformResponse: transformResponse })
+			.then(function(response) {
+				// Fill result array with loaded values
+				response.data.forEach(function(entry) { entries.push(entry); });
+			});
+
+		return entries;
+	}
+
+	Entry.prototype.$get = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+		self.$promise = $http
+			.get(uri)
+			.then(function success(response) {
+				var data = response.data;
+				// Copy new values into self
+				for (key in data) 
+					self[key] = data[key];
+				return self;
+			})
+			.finally(function(x) {
+				// Set resolved to true because server interaction has happened
+				self.$resolved = true;
+				return x;
+			});
+
+		return self;
+	};
+
+	Entry.prototype.$create = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category });
+		if (uri[uri.length - 1] === '/') uri = uri.substr(0, uri.length - 1) // Strip trailing slash from URI
+
+		// Prepare a data object that won't include the $ properties like $resolved
+		var data = {};
+		Object.keys(self).forEach(function(key) {
+			if (key[0] !== '$') data[key] = self[key];
+		});
+
+		self.$promise = $http
+			.post(uri, data) // POST the data - this will not include the $ properties like $resolved
+			.then(function success(response) {
+				// Set id property from location header in the server response
+				var location = response.headers('location');
+				self.id = Number(new URI(location).segment(-1));
+			})
+			.finally(function(x) {
+				self.$resolved = true;
+				return x;
+			});
+
+		return self;
+	};
+
+	Entry.prototype.$update = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+
+		// Prepare a data object that won't include the $ properties like $resolved
+		var data = {};
+		Object.keys(self).forEach(function(key) {
+			if (key[0] !== '$') data[key] = self[key];
+		});
+
+		self.$promise = $http
+			.put(uri, data)
+			.finally(function(x) { 
+				self.$resolved = true;
+				return x;
+			});
+
+		return self;	
+	};
+
+	Entry.prototype.$save = function() {
+		var self = this;
+
+		if (self.id === undefined || self.id === null) 
+			return self.$create();
+		else
+			return self.$update();
+	};
+
+	Entry.prototype.$delete = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand({ monthid: self.getMonthId(), category: self.category, id: self.id });
+
+		self.$promise = $http
+			.delete(uri);
+	};
+
+	return Entry;
+}]);

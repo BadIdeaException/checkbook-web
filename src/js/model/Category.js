@@ -84,6 +84,7 @@ module.factory('Category', [ '$http', function($http) {
 			})
 			.finally(function(x) {
 				self.$resolved = true;
+				return x;
 			});
 
 		return self;
@@ -104,6 +105,7 @@ module.factory('Category', [ '$http', function($http) {
 			.put(uri, data)
 			.finally(function(x) { 
 				self.$resolved = true;
+				return x;
 			});
 
 		return self;	
@@ -116,6 +118,15 @@ module.factory('Category', [ '$http', function($http) {
 			return self.$create();
 		else
 			return self.$update();
+	};
+
+	Category.prototype.$delete = function() {
+		var self = this;
+
+		var uri = URI_TEMPLATE.expand(self);
+
+		self.$promise = $http
+			.delete(uri);
 	};
 
 	return Category;

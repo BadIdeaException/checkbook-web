@@ -26,7 +26,7 @@ describe('Category', function() {
 			.expectGET('/categories')
 			.respond(200, RESPONSE);
 
-		categories = Category.query();
+		var categories = Category.query();
 		$httpBackend.flush();
 
 		// $http promise should be set on the result
@@ -82,8 +82,12 @@ describe('Category', function() {
 		category.$create();
 		$httpBackend.flush();
 
+		// Check that promise is set correctly
+		expect(category).to.have.property('$promise');
+		expect(category.$promise).to.respondTo('then');
 		// id should be set after $create - the server provided it in the location header
 		expect(category).to.have.property('id', CATEGORY.id);
+		// $resolved should be true after server interaction
 		expect(category).to.have.property('$resolved', true);
 	});
 
@@ -97,6 +101,10 @@ describe('Category', function() {
 		category.$update();
 		$httpBackend.flush();
 
+		// Check that promise is set correctly
+		expect(category).to.have.property('$promise');
+		expect(category.$promise).to.respondTo('then');
+		// $resolved should be true after server interaction
 		expect(category).to.have.property('$resolved', true);		
 	});
 
@@ -112,5 +120,19 @@ describe('Category', function() {
 		category.id = CATEGORY.id;
 		category.$save();
 		expect($update).to.have.been.called;
+	});
+
+	it('should DELETE to the server when calling .$delete', function() {
+		var category = new Category(CATEGORY);
+		$httpBackend
+			.expectDELETE('/categories/' + CATEGORY.id)
+			.respond(204, null);
+
+		category.$delete();
+		$httpBackend.flush();
+
+		// Check that promise is set correctly
+		expect(category).to.have.property('$promise');
+		expect(category.$promise).to.respondTo('then');
 	});
 });
