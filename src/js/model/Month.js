@@ -38,6 +38,14 @@ module.factory('Month', [ '$http', 'CategoryForMonth', function($http, CategoryF
 				data.forEach(function(item) { months.push(item); });
 			});
 
+		// Attach convenience function to retrieve a month with given id from the array
+		months.getById = function(id) {
+			for (var i = 0; i < this.length; i++) {
+				if (this[i].id === id) return this[i];
+			}
+			return null;
+		};
+
 		return months;
 	};
 

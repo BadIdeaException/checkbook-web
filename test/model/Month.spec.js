@@ -49,6 +49,47 @@ describe('Month', function() {
 		}
 	});
 
+	describe('months.getById', function() {
+		const RESPONSE = [ MONTH, { id: 1, value: 200 }];
+		var months;
+		beforeEach(function() {
+			$httpBackend
+				.expectGET('/months')
+				.respond(200, RESPONSE);
+
+			months = Month.query();
+			$httpBackend.flush();
+		});
+
+		it('should exist', function() {
+			expect(months).itself.to.respondTo('getById');
+		});
+
+		it('should get the right month', function() {
+			var month = months.getById(RESPONSE[1].id);
+			expect(month).to.exist;
+			expect(month).to.have.property('id', RESPONSE[1].id);
+		});
+
+		it('should return null when no such month exists', function() {
+			// Find a non-existent id. This should really pass on the first attempt...
+			var nonexistent = Number.MAX_VALUE;
+			while (months.some(function(month) { return month.id === nonexistent; }))
+				nonexistent--;
+			
+			var month = months.getById(nonexistent);
+			expect(month).to.be.null;
+		});
+
+		it('should return null when called before months are loaded', function() {
+			// Emulate an unfinished load
+			months.splice(0);
+			months.$resolved = false;
+			var month = months.getById(MONTH.id);
+			expect(month).to.be.null;
+		})
+	});
+
 	it('should update itself when calling .$get', function() {
 		const RESPONSE = { id: MONTH.id, value: MONTH.value + 1 };
 
