@@ -46,6 +46,9 @@ module.factory('dataService', [ 'Month', 'CategoryForMonth', 'Entry', function(M
 		}
 	}
 
+	// Wrap Entry.prototype.$save to move an entry from its old category/month to the new
+	// when it is saved
+	// Currently this happens regardless of whether the category/date actually changed
 	var $save = Entry.prototype.$save;
 	Entry.prototype.$save = function() {
 		var entry = this;
@@ -53,7 +56,7 @@ module.factory('dataService', [ 'Month', 'CategoryForMonth', 'Entry', function(M
 		result.$promise.then(function(x) {
 			// Delete from old category
 			var category = findCategoryForEntry(entry);
-			if (category) 
+			if (category && category.entries) 
 				category.entries.splice(category.entries.indexOf(entry), 1);
 
 			// Add to new category
@@ -65,6 +68,25 @@ module.factory('dataService', [ 'Month', 'CategoryForMonth', 'Entry', function(M
 						category.entries.push(entry);
 				}
 			}
+
+			return x;
+		});
+		return result;
+	};
+
+	// Wrap Entry.prototype.$delete to remove an entry from its category/month
+	// when it is deleted
+	var $delete = Entry.prototype.$delete;
+	Entry.prototype.$delete = function() {
+		var entry = this;
+		var result = $delete.apply(entry, arguments);
+		result.$promise.then(function(x) {
+			// Delete from old category
+			var category = findCategoryForEntry(entry);
+			if (category && category.entries)
+				category.entries.splice(category.entries.indexOf(entry), 1);
+
+			return x;
 		});
 	};
 

@@ -179,6 +179,8 @@ module.factory('Entry', [ '$http', function($http) {
 		return self;	
 	};
 
+	// Note: will be wrapped in DataService to keep data service's 
+	// data structure in sync with the server
 	Entry.prototype.$save = function() {
 		var self = this;
 
@@ -188,6 +190,8 @@ module.factory('Entry', [ '$http', function($http) {
 			return self.$update();
 	};
 
+	// Note: will be wrapped in DataService to keep data service's 
+	// data structure in sync with the server
 	Entry.prototype.$delete = function() {
 		var self = this;
 
@@ -199,6 +203,8 @@ module.factory('Entry', [ '$http', function($http) {
 
 		self.$promise = $http
 			.delete(uri);
+
+		return self;
 	};
 
 	return Entry;

@@ -94,13 +94,13 @@ describe('DataService', function() {
 		// The test checks that it gets removed from month0, category1 and added
 		// to month1, category2 during the move
 		const ENTRY = { id: 1, caption: 'entry1', datetime: new Date(0), value: 100, category: 1, details: 'details1' };
-		const CATEGORY = [ { id: 1, caption: 'category1', value: 0 } , { id: 2, caption: 'category2', value: 0 } ];
+		const CATEGORIES = [ { id: 1, caption: 'category1', value: 0 } , { id: 2, caption: 'category2', value: 0 } ];
 		const MONTHS = [ { id: 0, value: 100 }, { id: 1, value: 0 } ];
 
 		dataService.months = MONTHS.map(function(month) { return new Month(month); });
 		dataService.months.$resolved = true;
 		dataService.months.forEach(function(month) {
-			month.categories = CATEGORY.map(function(category) {
+			month.categories = CATEGORIES.map(function(category) {
 				var c = new CategoryForMonth(category);
 				c.monthid = month.id;
 				return c;
@@ -124,16 +124,53 @@ describe('DataService', function() {
 		// Check that it all went alright
 		expect(dataService.getMonths()[0].getCategories()[0].getEntries()).to.contain(entry);
 		// Move the entry to category2 of month1
-		entry.category = CATEGORY[1].id;
+		entry.category = CATEGORIES[1].id;
 		entry.datetime = new Date(1970, 1, 1);
 
 		// Save the changes
 		entry.$save();
 		$httpBackend.flush();
-		
 		// The entry should not be present anymore at month0 category1
 		expect(dataService.getMonths()[0].getCategories()[0].getEntries()).to.not.contain(entry);
 		// The entry should now be present at month1 category2
 		expect(dataService.getMonths()[1].getCategories()[1].getEntries()).to.contain(entry);
+	});
+
+	it('should remove an entry from its category after successful $delete', function() {
+		const MONTHS = [ { id: 0, value: 100 }, { id: 1, value: 0 } ];
+		const CATEGORIES = [ { id: 1, caption: 'category1', value: MONTHS[0].value, monthid: MONTHS[0].id }];
+		const ENTRY = { id: 1, caption: 'entry1', value: CATEGORIES[0].value, datetime: new Date(0), category: CATEGORIES[0].id, details: 'details1' };
+
+		dataService.months = MONTHS.map(function(month) { return new Month(month); });
+		dataService.months.$resolved = true;
+		dataService.months.forEach(function(month) {
+			month.categories = CATEGORIES.map(function(category) {
+				var c = new CategoryForMonth(category);
+				c.monthid = month.id;
+				return c;
+			});
+			month.categories.$resolved = true;
+		});
+		// dataService.months.$resolved = true;
+		// dataService.months[0].categories = CATEGORIES.map(function(category) { return new CategoryForMonth(category); });
+		// dataService.months[0].categories.$resolved = true;
+		var entry = new Entry(ENTRY);
+		dataService.months[0].categories[0].entries = [ entry ];
+		dataService.months[0].categories[0].entries.$resolved = true;
+
+		// Set up to receive request
+		$httpBackend
+			.whenDELETE('/months/' + MONTHS[0].id + '/categories/' + ENTRY.category + '/entries/' + ENTRY.id)
+			.respond(204, null);
+
+		// Check that the setup is correct
+		expect(dataService.getMonths()[0].getCategories()[0].getEntries()).to.contain(entry);
+
+		// Delete the entry
+		entry.$delete();
+		$httpBackend.flush();
+
+		// The entry should not be present anymore
+		expect(dataService.getMonths()[0].getCategories()[0].getEntries()).to.not.contain(entry);
 	});
 });
