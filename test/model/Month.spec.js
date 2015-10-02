@@ -49,45 +49,51 @@ describe('Month', function() {
 		}
 	});
 
-	describe('months.getById', function() {
-		const RESPONSE = [ MONTH, { id: 1, value: 200 }];
-		var months;
-		beforeEach(function() {
-			$httpBackend
-				.expectGET('/months')
-				.respond(200, RESPONSE);
+	describe('categories.getById', function() {		
+		const CATEGORIES = [];
+		var month;
+		
+		before(function() {
+			// Cannot do this in CATEGORIES declaration above because CategoryForMonth will not have
+			// been injected yet
+			CATEGORIES.push(
+				new CategoryForMonth({ id: 1, caption: 'category1', value: 100, monthid: 0 }), 
+				new CategoryForMonth({ id: 2, caption: 'category2', value: 200, monthid: 0 }) 
+			);
+		});
 
-			months = Month.query();
-			$httpBackend.flush();
+		beforeEach(function() {	
+			month = new Month(MONTH);
+			month.categories = CATEGORIES;
 		});
 
 		it('should exist', function() {
-			expect(months).itself.to.respondTo('getById');
+			expect(month.categories).itself.to.respondTo('getById');
 		});
 
-		it('should get the right month', function() {
-			var month = months.getById(RESPONSE[1].id);
-			expect(month).to.exist;
-			expect(month).to.have.property('id', RESPONSE[1].id);
+		it('should get the right category', function() {
+			var category = month.categories.getById(CATEGORIES[1].id);
+			expect(category).to.exist;
+			expect(category).to.have.property('id', CATEGORIES[1].id);
 		});
 
-		it('should return null when no such month exists', function() {
+		it('should return null when no such category exists', function() {
 			// Find a non-existent id. This should really pass on the first attempt...
 			var nonexistent = Number.MAX_VALUE;
-			while (months.some(function(month) { return month.id === nonexistent; }))
+			while (month.categories.some(function(category) { return category.id === nonexistent; }))
 				nonexistent--;
 			
-			var month = months.getById(nonexistent);
-			expect(month).to.be.null;
+			var category = month.categories.getById(nonexistent);
+			expect(category).to.be.null;
 		});
 
-		it('should return null when called before months are loaded', function() {
+		it('should return null when called before categories are loaded', function() {
 			// Emulate an unfinished load
-			months.splice(0);
-			months.$resolved = false;
-			var month = months.getById(MONTH.id);
-			expect(month).to.be.null;
-		})
+			month.categories = [];
+			month.categories.$resolved = false;
+			var category = month.categories.getById(CATEGORIES[0].id);
+			expect(category).to.be.null;
+		});
 	});
 
 	it('should update itself when calling .$get', function() {

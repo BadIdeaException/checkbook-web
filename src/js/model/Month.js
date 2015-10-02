@@ -3,6 +3,13 @@ var module = angular.module('Checkbook.Model');
 module.factory('Month', [ '$http', 'CategoryForMonth', function($http, CategoryForMonth) {
 	const URI_TEMPLATE = new URITemplate('/months/{id}');
 
+	function getById(id) {
+		for (var i = 0; i < this.length; i++) {
+			if (this[i].id === id) return this[i];
+		}
+		return null;		
+	}
+
 	var Month = function(values) {
 		var self = this;
 
@@ -13,6 +20,18 @@ module.factory('Month', [ '$http', 'CategoryForMonth', function($http, CategoryF
 		// Copy provided data values into self
 		Object.keys(values).forEach(function(key) {
 			self[key] = values[key];
+		});
+
+		var _categories;
+		Object.defineProperty(self, 'categories', {
+			enumerable: true,
+			get: function() { return _categories; },
+			set: function(categories) {
+				_categories = categories;
+				// Attach convenience function to retrieve a month with given id from the array
+				if (_categories !== undefined && _categories !== null)
+					_categories.getById = getById;
+			}
 		});
 	};
 	
@@ -37,14 +56,6 @@ module.factory('Month', [ '$http', 'CategoryForMonth', function($http, CategoryF
 				// Fill result array with loaded values
 				data.forEach(function(item) { months.push(item); });
 			});
-
-		// Attach convenience function to retrieve a month with given id from the array
-		months.getById = function(id) {
-			for (var i = 0; i < this.length; i++) {
-				if (this[i].id === id) return this[i];
-			}
-			return null;
-		};
 
 		return months;
 	};
