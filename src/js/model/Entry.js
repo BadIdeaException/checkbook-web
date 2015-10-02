@@ -101,7 +101,7 @@ module.factory('Entry', [ '$http', function($http) {
 
 		var uri = URI_TEMPLATE.expand({ 
 			monthid: (self._lastSavedMonthId !== undefined && self._lastSavedMonthId !== null ? self._lastSavedMonthId : self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
-			category: (self._lastSavedCategory !== undefined self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory !== undefined && self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
 			id: self.id 
 		});
 
@@ -158,7 +158,7 @@ module.factory('Entry', [ '$http', function($http) {
 
 		var uri = URI_TEMPLATE.expand({ 
 			monthid: (self._lastSavedMonthId !== undefined && self._lastSavedMonthId !== null ? self._lastSavedMonthId : self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
-			category: (self._lastSavedCategory !== undefined self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory !== undefined && self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
 			id: self.id 
 		});
 
@@ -193,7 +193,7 @@ module.factory('Entry', [ '$http', function($http) {
 
 		var uri = URI_TEMPLATE.expand({ 
 			monthid: (self._lastSavedMonthId !== undefined && self._lastSavedMonthId !== null ? self._lastSavedMonthId : self.getMonthId()), // Try last saved month id, if that doesn't exist, use the current one
-			category: (self._lastSavedCategory !== undefined self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
+			category: (self._lastSavedCategory !== undefined && self._lastSavedCategory !== null ? self._lastSavedCategory : self.category), // Try last saved category, if that doesn't exist, use the current one
 			id: self.id 
 		});
 
