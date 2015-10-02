@@ -35,7 +35,7 @@ describe('DataService', function() {
 		query.restore();
 	});
 
-	describe('categories.getById', function() {		
+	describe('months.getById', function() {		
 		const MONTHS = [];
 		
 		before(function() {
