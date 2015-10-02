@@ -82,11 +82,11 @@ describe('CategoryForMonth', function() {
 
 		// There are two different ways this could have been called
 		if (args.length === 2)
-			expect(args).to.equal([ CATEGORY.monthid, CATEGORY.id ]);
+			expect(args).to.deep.equal([ CATEGORY.monthid, CATEGORY.id ]);
 		else {
 			args = args[0];
 			expect(args).to.have.property('monthid', CATEGORY.monthid);
-			expect(args).to.have.property('id', CATEGORY.id);
+			expect(args).to.have.property('category', CATEGORY.id);
 		}
 
 		query.restore();
@@ -118,8 +118,10 @@ describe('CategoryForMonth', function() {
 	it('should compute total value from entries if they are available', function() {
 		var category = new CategoryForMonth(CATEGORY);
 
-		const ENTRIES = [{ id: 1, caption: '1', category: CATEGORY.id, datetime: new Date(0), value: CATEGORY.value + 1, details: '1'},
-			{ id: 2, caption: '2', category: CATEGORY.id, datetime: new Date(0), value: CATEGORY.value + 2, details: '2' }];
+		const ENTRIES = [
+			{ id: 1, caption: '1', category: CATEGORY.id, datetime: new Date(0), value: CATEGORY.value + 1, details: '1'},
+			{ id: 2, caption: '2', category: CATEGORY.id, datetime: new Date(0), value: CATEGORY.value + 2, details: '2' }
+		];
 
 		category.entries = ENTRIES.map(function(entry) { return new Entry(entry); });
 		category.entries.$resolved = true;

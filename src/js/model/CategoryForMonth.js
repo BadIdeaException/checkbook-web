@@ -69,7 +69,7 @@ module.factory('CategoryForMonth', [ '$http', 'Entry', function($http, Entry) {
 	CategoryForMonth.prototype.getEntries = function() {
 		var self = this;
 		if (self.entries === undefined || self.entries === null) 
-			self.entries = Entry.query(self);
+			self.entries = Entry.query(self.monthid, self.id);
 
 		return self.entries;
 	};
