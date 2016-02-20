@@ -9,13 +9,21 @@
 // require authorization or not.
 
 // On receiving a 401 response, the service will attempt to acquire a new access token. For this,
-// it will first try to exchange a refresh token for a new access token (a new refresh token will
+// it will first try to negotiate a refresh token for a new access token (a new refresh token will
 // also be issued if this succeeds). If this is successful, the original request is rerun with 
 // the new access token.
 
 // If no refresh token is available, or negotiation failed, the user is redirected to the login page.
-// The original request will be dropped as it will have become obsolete with the redirect: a 
-// successful login will be followed by another redirect anyway.
+// The original request will be failed and not automatically rerun after successful login. This is because
+// there will likely be a redirect from the login to a content page, causing a fresh request and thus
+// rendering this one obsolete.
+
+// If any 401 responses that come in while this service is negotiating, their requests will be queued
+// and rerun after negotiations were successful. The original responses will be resolved to the values
+// of their reruns. If negotiations fail, the 401 responses are allowed to propagate. In effect, this 
+// allows successful negotiations to remain transparent for queued requests as well - if a fresh access
+// token can be gotten by exchanging a refresh token for it, this will remain invisible to the code
+// generating the requests.
 
 var module = angular.module('Checkbook.Auth', [ 'ngCookies' ]);
 
