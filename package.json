@@ -26,7 +26,7 @@
     "karma-sinon": "^1.0.4",
     "karma-sinon-chai": "^1.0.0",
     "mocha": "^2.2.4",
-    "phantomjs": "^1.9.17",
+    "phantomjs": ">=2.0.0",
     "sinon": "^1.14.1"
   }
 }
