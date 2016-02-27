@@ -19,7 +19,7 @@ Vagrant.configure(2) do |config|
   # Share project folder as /home/checkbook-web and make this the default folder for new bash shells
   # (This will also make it the working directory when doing vagrant ssh)
   config.vm.synced_folder ".", "/home/checkbook-web"
-  config.vm.provision "shell" inline: "echo -e '\n# Make /home/checkbook-web the default folder\ncd /home/checkbook-web' >> /home/vagrant/.bashrc"
+  config.vm.provision "shell", inline: "echo -e '\n# Make /home/checkbook-web the default folder\ncd /home/checkbook-web' >> /home/vagrant/.bashrc", privileged: false
 
   # Enable agent forwarding to use the host key when communicating with github
   config.ssh.forward_agent = true
@@ -56,4 +56,17 @@ Vagrant.configure(2) do |config|
     shell.name = "Install dependencies"
     shell.inline = "cd /home/checkbook-web && npm install"
   end
+
+  # Automatically run grunt watch when starting the machine
+  config.vm.provision "shell", run: "always" do |shell|
+    shell.name = "Run \"grunt watch\""
+    # The task needs to be daemonized for this to work:
+    # 1. nohup: catch the HANGUP signal
+    # 2. 0<&-: close file descriptor 0 (stdin)
+    # 3. &>/home/vagrant/grunt-watch.log: Redirect stdout and stderr to /home/vagrant/grunt-watch.log
+    # Refer http://stackoverflow.com/questions/19732652/vagrant-provision-not-able-to-start-grunt
+    shell.inline = "nohup grunt --gruntfile /home/checkbook-web/Gruntfile.js watch 0<&- &>/home/vagrant/grunt-watch.log &"
+    shell.privileged = false
+  end
+
 end
