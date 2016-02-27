@@ -48,12 +48,12 @@ Vagrant.configure(2) do |config|
   end
 
   config.vm.provision "shell" do |shell|
-    shell.name = "Install bower"
+    shell.name = "Install bower and grunt"
     shell.inline = "npm install -g bower grunt-cli"
   end
 
   config.vm.provision "shell" do |shell|
-    shell.name = "Install dependencies"
+    shell.name = "Install checkbook dependencies"
     shell.inline = "cd /home/checkbook-web && npm install"
   end
 
