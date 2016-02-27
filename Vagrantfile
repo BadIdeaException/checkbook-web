@@ -16,8 +16,10 @@ Vagrant.configure(2) do |config|
   # Disable default share of current folder as /vagrant
   config.vm.synced_folder ".", "/vagrant", disabled: true
 
-  # Share project folder as /home/checkbook-web
+  # Share project folder as /home/checkbook-web and make this the default folder for new bash shells
+  # (This will also make it the working directory when doing vagrant ssh)
   config.vm.synced_folder ".", "/home/checkbook-web"
+  config.vm.provision "shell" inline: "echo -e '\n# Make /home/checkbook-web the default folder\ncd /home/checkbook-web' >> /home/vagrant/.bashrc"
 
   # Enable agent forwarding to use the host key when communicating with github
   config.ssh.forward_agent = true
