@@ -17,11 +17,10 @@ module.exports = function(config) {
     files: [
         'node_modules/chai-angular/chai-angular.js',
         'bower_components/angular/angular.js',
-        'bower_components/uri.js/src/URI.js',
-        'bower_components/uri.js/src/URITemplate.js',
         'bower_components/angular-route/angular-route.js',
         'bower_components/angular-animate/angular-animate.js',
         'bower_components/angular-cookies/angular-cookies.js',
+        'bower_components/angular-cookies/angular-resource.js',
         'bower_components/angular-mocks/angular-mocks.js',
         'src/js/app.js',
         'src/js/**/*.js',
