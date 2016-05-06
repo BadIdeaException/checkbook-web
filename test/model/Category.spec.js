@@ -1,4 +1,4 @@
-describe.only('Category', function() {
+describe('Category', function() {
 	beforeEach(angular.mock.module('Checkbook'));	
 	
 	const CATEGORY = { id: 1, caption: '1' };
