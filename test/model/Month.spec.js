@@ -13,157 +13,59 @@ describe('Month', function() {
 		$httpBackend = $injector.get('$httpBackend');
 	}));
 
-	it('should use the provided data values when constructing a new instance', function() {
-		var month = new Month(MONTH);
-
-		expect(month).to.have.property('$resolved', false);
-		// All values passed to the constructor should be present
-		for (var key in MONTH)
-			expect(month).to.have.property(key, MONTH[key]);
-	});
-
-	it('should get an array of months when calling .query', function() {
-		const RESPONSE = [ MONTH, { id: 1, value: 200 }];
-		$httpBackend
-			.expectGET('/months')
-			.respond(200, RESPONSE);
-
-		var months = Month.query();
-		$httpBackend.flush();
-
-		// $http promise should be set on the result
-		expect(months).to.have.property('$promise');
-		expect(months.$promise).to.respondTo('then');
-
-		// Result should have the right length
-		expect(months).to.have.length(RESPONSE.length);
-		for (var i = 0; i < months.length; i++) {			
-			var month = months[i];
-			// It should be a Month
-			expect(month).to.be.an.instanceOf(Month);
-			// Its $resolved property should be true
-			expect(month).to.have.property('$resolved', true);
-			// All values should be set correctly
-			for (var key in RESPONSE[i])
-				expect(month).to.have.property(key, RESPONSE[i][key]);
-		}
-	});
-
-	describe('categories.getById', function() {		
-		const CATEGORIES = [];
-		var month;
+	it('should only have "reading" and no "writing" actions', function() {
+		expect(Month).itself.to.respondTo('query');
+		expect(Month).itself.to.respondTo('get');
+		expect(Month).itself.to.not.respondTo('save');
+		expect(Month).itself.to.not.respondTo('delete');
+		expect(Month).itself.to.not.respondTo('remove');
 		
-		before(function() {
-			// Cannot do this in CATEGORIES declaration above because CategoryForMonth will not have
-			// been injected yet
-			CATEGORIES.push(
-				new CategoryForMonth({ id: 1, caption: 'category1', value: 100, monthid: 0 }), 
-				new CategoryForMonth({ id: 2, caption: 'category2', value: 200, monthid: 0 }) 
-			);
-		});
-
-		beforeEach(function() {	
-			month = new Month(MONTH);
-			month.categories = CATEGORIES;
-		});
-
-		it('should exist', function() {
-			expect(month.categories).itself.to.respondTo('getById');
-		});
-
-		it('should get the right category', function() {
-			var category = month.categories.getById(CATEGORIES[1].id);
-			expect(category).to.exist;
-			expect(category).to.have.property('id', CATEGORIES[1].id);
-		});
-
-		it('should return null when no such category exists', function() {
-			// Find a non-existent id. This should really pass on the first attempt...
-			var nonexistent = Number.MAX_VALUE;
-			while (month.categories.some(function(category) { return category.id === nonexistent; }))
-				nonexistent--;
-			
-			var category = month.categories.getById(nonexistent);
-			expect(category).to.be.null;
-		});
-
-		it('should return null when called before categories are loaded', function() {
-			// Emulate an unfinished load
-			month.categories = [];
-			month.categories.$resolved = false;
-			var category = month.categories.getById(CATEGORIES[0].id);
-			expect(category).to.be.null;
-		});
+		var m = new Month();
+		expect(m).to.respondTo('$query');
+		expect(m).to.respondTo('$get');
+		expect(m).to.not.respondTo('$save');
+		expect(m).to.not.respondTo('$delete');
+		expect(m).to.not.respondTo('$remove');
 	});
 
-	it('should update itself when calling .$get', function() {
-		const RESPONSE = { id: MONTH.id, value: MONTH.value + 1 };
+	describe('.fetchCategories', function() {
+		it('should hit the server when categories are not loaded', function() {
+			var month = new Month(MONTH);
+			var categoryResponse = { id: 25 }; // Arbitrary response, don't need a full category here
 
-		$httpBackend
-			.expectGET('/months/' + MONTH.id)
-			.respond(200, RESPONSE);
+			$httpBackend
+				.expectGET('/months/' + month.id + '/categories')
+				.respond(200, [ categoryResponse ]);
 
-		var month = new Month(MONTH);
-		month = month.$get();
-		$httpBackend.flush();
+			var pResult;
 
-		// Check that promise is set correctly
-		expect(month).to.have.property('$promise');
-		expect(month.$promise).to.respondTo('then');
-		// $resolved should be true after server interaction
-		expect(month).to.have.property('$resolved', true);
+			var p = month
+				.fetchCategories()
+				.then(function(r) { pResult = r; });
 
-		// Check that the new values are present
-		for (var key in RESPONSE) 
-			expect(month).to.have.property(key, RESPONSE[key]);
-	});
+			$httpBackend.flush();
 
-	it('should load categories when calling getCategories for the first time', function() {
-		var query = sinon.spy(CategoryForMonth, 'query');
+			expect(pResult).to.exist.and.have.length(1);
+			expect(pResult[0]).to.have.property('id', categoryResponse.id);
+		});
 
-		var month = new Month(MONTH);
-		var categories = month.getCategories();
+		it('should not hit the server when categories are already loaded', inject(function($rootScope) {
+			var month = new Month(MONTH);
+			month.categories = [ { id: 25 } ]; // Don't need a full category here
 
-		expect(query).to.have.been.calledWith(MONTH.id);
-		query.restore();
-	});
+			$httpBackend
+				.whenGET(function() { return true; }) // Match any url
+				.respond(function() { expect.fail('Hit the server when it shouldn\'t have'); });
 
-	it('should use cached categories when calling getCategories subsequently', function() {
-		var month = new Month(MONTH);
+			var pResult;
+			var p = month
+				.fetchCategories()
+				.then(function(r) { pResult = r; });
 
-		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value }];
-		CATEGORIES.$resolved = true;
-		month.categories = CATEGORIES;
+			$rootScope.$apply(); // Need to apply manually since $httpBackend.flush isn't doing it for us
 
-		expect(month.getCategories()).to.equal(CATEGORIES);
-	});
-
-	it('should use own value when calling getTotal and categories haven\'t been loaded', function() {
-		var month = new Month(MONTH);
-
-		// Case 1: categories haven't been loaded yet
-		expect(month.getTotal()).to.equal(month.value);
-
-		// Case 2: loading is in progress but hasn't completed
-		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value + 1 }];
-
-		month.categories = CATEGORIES;
-		month.categories.$resolved = false;
-		expect(month.getTotal()).to.equal(month.value);		
-	});
-
-	it('should compute total value from categories if they are available', function() {
-		var month = new Month(MONTH);
-
-		const CATEGORIES = [{ id: 1, caption: '1', value: MONTH.value + 1 },
-			{ id: 2, caption: '2', value: MONTH.value + 2 }];
-
-		month.categories = CATEGORIES.map(function(category) { return new CategoryForMonth(category); });
-		month.categories.$resolved = true;
-
-		// Expect computed values to be the sum of the categories' values
-		expect(month.getTotal()).to.equal(CATEGORIES.reduce(function(total, category) {
-			return total + category.value; // Can use the value directly since no entries are loaded
-		}, 0));
+			expect(pResult).to.exist.and.have.length(1);
+			expect(pResult[0]).to.deep.equal(month.categories[0]);
+		}));
 	});
 });
