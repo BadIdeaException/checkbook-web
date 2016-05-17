@@ -13,7 +13,7 @@ describe('CategoryForMonth', function() {
 		$httpBackend = $injector.get('$httpBackend');
 	}));
 
-	it('should only have "reading" an no "writing" actions', function() {
+	it('should only have "reading" and no "writing" actions', function() {
 		expect(CategoryForMonth).itself.to.respondTo('query');
 		expect(CategoryForMonth).itself.to.respondTo('get');
 		expect(CategoryForMonth).itself.to.not.respondTo('save');
