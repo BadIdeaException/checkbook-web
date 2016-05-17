@@ -3,7 +3,7 @@ var module = angular.module('Checkbook.Model');
 module.factory('CategoryForMonth', [ '$resource', '$q', 'Entry', 'Category', function($resource, $q, Entry, Category) {
 
 	var _CategoryForMonth = $resource('/months/:monthid/categories/:id',
-			{ id: '@id' });
+			{ monthid: '@monthid', id: '@id' });
 
 	function CategoryForMonth() {
 		var self = this;
@@ -32,11 +32,12 @@ module.factory('CategoryForMonth', [ '$resource', '$q', 'Entry', 'Category', fun
 	 * @returns {Promise} A promise resolving to the entries
 	 */
 	CategoryForMonth.prototype.fetchEntries = function() {
-		if (!this.entries) {
-			this.entries = Entry.querySpecific({ monthid: this.monthid, category: this.id });
-			return this.entries.$promise;
+		var self = this;
+		if (!self.entries) {
+			self.entries = Entry.querySpecific({ monthid: self.monthid, category: self.id });
+			return self.entries.$promise;
 		} else 
-			return $q.when(this.entries);		
+			return $q.when(self.entries);		
 	};
 
 	// const URI_TEMPLATE = new URITemplate('/months/{monthid}/categories/{id}');
