@@ -1,6 +1,4 @@
-var module = angular.module('Checkbook.Model');
-
-module.factory('Entry', [ '$resource', function($resource) {
+angular.module('Checkbook.Model').factory('Entry', [ '$resource', function($resource) {
 	var _Entry = $resource(
 		'/entries/:id',
 		{ id: '@id' },

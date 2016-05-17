@@ -1,6 +1,4 @@
-var module = angular.module('Checkbook.Model');
-
-module.factory('Month', [ '$resource', '$q', 'CategoryForMonth', function($resource, $q, CategoryForMonth) {
+angular.module('Checkbook.Model').factory('Month', [ '$resource', '$q', 'CategoryForMonth', function($resource, $q, CategoryForMonth) {
 	var Month = $resource('/months/:id',
 			{ id: '@id' });
 

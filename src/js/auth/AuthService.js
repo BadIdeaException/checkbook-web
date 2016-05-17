@@ -25,9 +25,10 @@
 // token can be gotten by exchanging a refresh token for it, this will remain invisible to the code
 // generating the requests.
 
-var module = angular.module('Checkbook.Auth', [ 'ngCookies' ]);
-
-module.factory('authService', [ '$cookies', '$injector', '$q', '$location', function($cookies, $injector, $q, $location) {
+angular
+.module('Checkbook.Auth', [ 'ngCookies' ])
+.factory('authService', [ '$cookies', '$injector', '$q', '$location', function($cookies, $injector, $q, $location) {
+	
 	const ACCESS_TOKEN_KEY = 'access_token';
 	const REFRESH_TOKEN_KEY = 'refresh_token';
 
