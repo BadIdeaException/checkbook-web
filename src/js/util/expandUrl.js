@@ -19,7 +19,7 @@
  * NOTE: This function does not encode special characters as they would normally be.
  * But since these are only going to be used as cache keys, that shouldn't matter
  */
-function expandURL(url, params, data) {
+function expandUrl(url, params, data) {
 	function substitute(placeholder) {
 		// Assign to value whatever the params object holds for the placeholder
 		var value = params[placeholder];
@@ -76,6 +76,5 @@ function expandURL(url, params, data) {
 
 angular
 	.module('Checkbook.Util')
-	.value('expandURL', expandURL);
-
+	.value('expandUrl', expandUrl);
 })();
