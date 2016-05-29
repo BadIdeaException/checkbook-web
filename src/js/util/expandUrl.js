@@ -37,6 +37,8 @@ function expandUrl(url, params, data) {
 		return value;
 	}
 	params = angular.copy(params) || {};
+	data = data || {};
+
 	// Standard URL format: protocol://host:port/segment1/segment2/.../segmentN&query1=value1;query2=value2
 	
 	// Process protocol and domain, if present
