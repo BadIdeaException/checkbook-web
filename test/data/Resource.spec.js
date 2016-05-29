@@ -97,26 +97,128 @@ describe('Resource', function() {
 		update.restore();
 	});
 
-	it('should write the resource to cache when getting', function() {
+	describe('GET', function() {
+		var Resource, cache;
+
+		beforeEach(function() {
+			Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
+			cache = Resource.cache;
+		});
+
+		it('should retrieve a cached item if one is available', inject(function($q) {
+			var resource = new Resource();
+			resource.$promise = $q.resolve(resource); // A real resource in the cache would have the $promise set, because 
+													  // the only way to get into the cache is through server interaction
+
+			cache.put('/', resource);
+
+			$httpBackend
+				.expectGET('/')
+				.respond(500);
+
+			var cached = Resource.get();
+
+			expect($httpBackend.flush).to.throw(); // No request should have been made to the server
+
+			expect(cached).to.equal(resource);
+		}));
+
+		it('should cache the item returned from the server', function() {
+			const RESPONSE = {};
+
+			$httpBackend
+				.expectGET('/')
+				.respond(200, RESPONSE);
+
+			var returned = Resource.get(); 
+			$httpBackend.flush();
+
+			expect(cache.get('/')).to.equal(returned);
+		});
+
+		it('should cache collection items as well as the collection', function() {
+			const RESPONSE = [ { id: 1 }, { id: 2 } ];
+
+			$httpBackend
+				.expectGET('/')
+				.respond(200, RESPONSE);
+
+			var collection = Resource.query();
+			$httpBackend.flush();
+			
+			expect(Resource.cache.get('/')).to.equal(collection);
+			expect(Resource.cache.get('/' + RESPONSE[0].id)).to.equal(collection[0]);
+			expect(Resource.cache.get('/' + RESPONSE[1].id)).to.equal(collection[1]);
+		});
+	});
+
+	describe('POST/PUT', function() {
+		it('should write the item to the cache when creating', function() {
+			const ID = 1;
+
+			var Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
+			var resource = new Resource();
+
+			$httpBackend
+				.expectPOST('/')
+				.respond(201, angular.merge({}, resource, { id: ID }));
+
+			var returned;
+			resource.$create(resource).then(function(r) { returned = r }); // Instance methods return promise directly
+
+			$httpBackend.flush();
+
+			expect(Resource.cache.get('/' + ID)).to.equal(returned);						
+		});
+
+		it('should write the item to the cache when updating', function() {
+			const ID = 1;
+
+			var Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
+			var resource = new Resource({ id: ID});
+
+			$httpBackend
+				.expectPUT('/' + ID)
+				.respond(200, angular.copy(resource));
+
+			var returned;
+			resource.$update(resource).then(function(r) { returned = r }); // Instance methods return promise directly
+
+			$httpBackend.flush();
+
+			expect(Resource.cache.get('/' + ID)).to.equal(returned);				
+		});
+	});
+
+	describe('DELETE', function() {
+		it('should remove the item from the cache', function() {
+			var Resource = $resource('/', null, null, { cache: true });
+			var resource = new Resource();
+
+			$httpBackend
+				.expectDELETE('/')
+				.respond(204);
+
+			resource.$delete();
+			$httpBackend.flush();
+
+			expect(Resource.cache.get('/')).to.not.exist;
+		});
+	});
+
+	it('should subsequently read from the cache when getting', function() {
 		const RESPONSE = { id: 1 };
-		var Resource = $resource('/');
+		var Resource = $resource('/', null, null, { cache: true });
 		$httpBackend
 			.expectGET('/')
 			.respond(200, RESPONSE);
 
-		var cached;
 		var resource1 = Resource.get();
-		expect($httpBackend.flush).to.not.throw;
+		expect($httpBackend.flush).to.not.throw();
 
 		var resource2 = Resource.get();
+		expect($httpBackend.flush).to.throw();
 
-var result
-		expect(result).to.exist.and.have.property('$promise');
-		result.$promise.then(function(x) {
-			cached = Resource.cache.get(RESPONSE.id);
-		});
-		$httpBackend.flush();
-
-		expect(cached).to.exist;
-	})
+		expect(resource1).to.equal(resource2);
+	});
 });

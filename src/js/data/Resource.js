@@ -18,15 +18,14 @@ angular
 			'delete': { method: 'DELETE' } 
 		};
 	}])
-	.decorator('$resource', [ '$delegate', '$cacheFactory', '$log', function($delegate, $cacheFactory, $log) {
+	.decorator('$resource', [ '$delegate', '$cacheFactory', '$q', 'expandUrl', function($delegate, $cacheFactory, $q, expandUrl) {
 		/**
-		 * Removes all methods (both static and instance versions) from `Resource` that conform to actions using
+		 * Removes all action methods (both static and instance versions) from `Resource` that are using
 		 * methods other than GET or HEAD.
 		 * @param  {Resource} Resource The Resource constructor to work on
-		 * @param  {Object} actions  The extra actions that were given to the $resource call		 
+		 * @param  {Object} actions  The object describing the actions that were created on `Resource`
 		 */
 		function removeWriteActions(Resource, actions) {
-			var actions = angular.extend({}, actions, resourceProviderDefaultActions);
 			Object
 				.keys(actions)
 				.filter(function(actionName) { return actions[actionName].method.toUpperCase() !== 'GET' && actions[actionName].method.toUpperCase() !== 'HEAD'; })
@@ -44,29 +43,29 @@ angular
 		 * @return {[type]}               [description]
 		 */
 		var decorated = function(url, paramDefaults, actions, options) {			
-			// Make sure parameters are defined objects and make copies so we can write and delete in them
-			actions = angular.extend({}, actions);
+			// Make sure parameters are defined objects and make copies so we can modify them
+			actions = angular.extend({}, resourceProviderDefaultActions, actions);
 			options = angular.extend({}, options);
 			// Copy over those options introduced by us over into a new object, then remove them from the
 			// original options parameter (because I think it will trip up the original $resource when populating
 			// underlying $http config objects)
 			var newOptions = {};
 			[ 'readOnly', 'cache' ].forEach(function(key) { newOptions[key] = options[key]; delete options[key]; });			
-						
-			
 
+
+			
 			// Call through to the delegate factory
-			var Resource = $delegate.apply(this, arguments);			
+			var Resource = $delegate(url, paramDefaults, actions, options);			
 			// If the resource is supposed to be read-only, remove all methods that are not GET or HEAD actions
 			if (newOptions.readOnly)
 				removeWriteActions(Resource, actions);
 
 			
 
-			if (newOptions.cache === true)
-				Resource.cache = $cacheFactory.get(url) || $cacheFactory(url); // Create or retrieve cache
-			else if (angular.isObject(newOptions.cache))
-				Resource.cache = newOptions.cache;
+			if (newOptions.cache === true) // If newOptions.cache is used as a flag...
+				Resource.cache = $cacheFactory.get(url) || $cacheFactory(url); // ...retrieve or create cache...
+			else if (angular.isObject(newOptions.cache)) // ...otherwise, if it is a Cache object...
+				Resource.cache = newOptions.cache; // ...use that
 			
 
 
@@ -94,26 +93,113 @@ angular
 					return Resource.create(arguments);
 			}
 
-			
 
-			// Cache-aware version of the delegate method
-			var _get = Resource.get;
-			Resource.get = function() {
-				var self = this;
 
-				var result = _get.apply(this, arguments);
-				result.$promise.then(function cacheResult(resource) {
-					if (resource.id || resource.id === 0)
-						self.cache.put(resource.id, resource);
-					else
-						$log.warn('Resource does not have an id - did not cache');
+			function cachifyRead(delegateFn, actionUrl, actionParams) {
+				return function(params, success, error) {
+					// Calculate effective parameters
+					params = angular.extend({}, params, actionParams, paramDefaults);
+					// Attempt to read from cache, if cache is available
+					var result = Resource.cache && Resource.cache.get(expandUrl(actionUrl, params));
+					if (result) {
+						$q.when(result, success); // Call success callback asynchronously
+						return result;
+					}
 
-					return resource;
-				});
-				return result;
-			};
+					// Otherwise call through to delegate function
+					result = delegateFn.apply(this, arguments);
+					var promise = result.$promise || result; // Instance calls return the promise directly
+					promise.then(function(resource) {
+						// Cache result if cache is available
+						Resource.cache && Resource.cache.put(expandUrl(actionUrl, params), resource);
+						return resource;
+					});
+					return result;
+				};
+			}	
 
-			return Resource;
+			function cachifyCollection(delegateFn, actionUrl, actionParams) {
+				return function(params, success, error) {
+					// Calculate effective parameters
+					params = angular.extend({}, params, actionParams, paramDefaults);
+					// Attempt to read from cache, if cache is available
+					var result = Resource.cache && Resource.cache.get(expandUrl(actionUrl, params));
+					if (result) {
+						$q.resolve(result, success); // Call success callback asynchronously
+						return result;
+					}
+
+					// Otherwise call through to delegate function
+					result = delegateFn.apply(this, arguments);
+					var promise = result.$promise || result; // Instance calls return the promise directly
+					promise.then(function(collection) {
+						if (Resource.cache) {
+							// Cache result if cache is available
+							Resource.cache.put(expandUrl(actionUrl, params), collection);
+							// Cache collection elements individually
+							var elementGetAction = actions.get || {};
+							var elementParams = angular.extend({}, params, elementGetAction.params, paramDefaults);
+							collection.forEach(function(element) {
+								Resource.cache.put(expandUrl(
+									elementGetAction.url || url, 
+									elementParams, 
+									element), element);
+							});
+						}
+						return collection;
+					});
+					return result;
+
+				};
+			}
+
+			function cachifyWrite(delegateFn, actionUrl, actionParams) {
+				return function(params, data, success, error) {			
+					// Calculate effective parameters
+					params = angular.extend({}, params, actionParams, paramDefaults);
+					// Always call through to delegate function					
+					var result = delegateFn.apply(this, arguments);
+					var promise = result.$promise || result; // Instance calls return the promise directly
+					promise.then(function(resource) {
+						// Cache result if cache is available
+						Resource.cache && Resource.cache.put(expandUrl(actionUrl, params, resource), resource);
+						return resource;
+					});
+					return result;
+				};
+			}
+
+			function cachifyDelete(delegateFn, actionUrl, actionParams) {
+				return function(params, data, success, error) {
+					// Calculate effective parameters
+					params = angular.extend({}, params, actionParams, paramDefaults);
+					// Always call through to delegate function
+					var result = delegateFn.apply(this, arguments);
+					var promise = result.$promise || result; // Instance calls return the promise directly
+					promise.then(function(resource) { 
+						// Remove from cache if cache is available
+						Resource.cache && Resource.cache.remove(expandUrl(actionUrl, params, resource));
+					});
+					return result;
+				};
+			}
+
+			if (newOptions.cache) angular.forEach(actions, function(action, name) {
+				var delegateFn = Resource[name];
+				var cachifiedFn;
+				switch (action.method.toUpperCase()) {
+					case 'GET': 
+						if (action.isArray) cachifiedFn = cachifyCollection(delegateFn, action.url || url, action.params)
+						else cachifiedFn = cachifyRead(delegateFn, action.url || url, action.params);
+						break;
+					case 'POST':
+					case 'PUT': cachifiedFn = cachifyWrite(delegateFn, action.url || url, action.params); break;
+					case 'DELETE': cachifiedFn = cachifyDelete(delegateFn, action.url || url, action.params); break;
+				}				
+				Resource[name] = cachifiedFn;
+			});
+
+		 	return Resource;
 		};	
 
 		return decorated;

@@ -1,3 +1,3 @@
 "use strict";
 
-angular.module('Checkbook.Data', [ 'ngResource' ]);
+angular.module('Checkbook.Data', [ 'ngResource', 'Checkbook.Util' ]);
