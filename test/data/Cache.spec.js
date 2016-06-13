@@ -11,6 +11,12 @@ describe.only('Cache', function() {
 		Cache = _Cache_;
 	}));
 
+	it('should throw on missing or invalid keygen', function() {
+		function creator(keygen) { return new Cache(keygen); } // Needed because we can't use new keyword inside expect
+		expect(creator).to.throw(TypeError);		
+		expect(creator.bind(null, {})).to.throw(TypeError);
+	});
+
 	describe('.put', function() {
 		var cache;
 		beforeEach(function() {
@@ -50,7 +56,7 @@ describe.only('Cache', function() {
 			var coll = [ { id: 1 }, { id: 2} ];
 
 			cache.put(coll);
-			expect(cache.items[DEFAULT_KEYGEN.coll(coll)]).to.equal(coll); // Collection should have been added
+			expect(cache.items[DEFAULT_KEYGEN.coll(coll)]).to.equal(coll); // Collection itself should have been added
 			for (var i = 0; i < coll.length; i++) 
 				expect(cache.items[DEFAULT_KEYGEN.elem(coll[i])]).to.equal(coll[i]); // All items should have been added		
 		});
@@ -73,7 +79,7 @@ describe.only('Cache', function() {
 			cache.items[KEY] = item;
 			cache.remove(KEY);
 
-			expect(cache.items[KEY]).to.not.exist;
+			expect(cache.get(KEY)).to.not.exist;
 		});
 
 		it('should also remove an item from its collection', function() {
