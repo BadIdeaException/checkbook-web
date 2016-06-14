@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Decorate angular's $resource factory to facilitate use of a data store and the inclusion of an 'update' action (HTTP PUT as per REST specification)
+ * Decorate angular's $resource factory to facilitate use of a data store and the inclusion of an 'update' action (HTTP PUT as per REST "specification")
  */
 (function() { // IIFE to keep this variable from polluting the global scope
 var resourceProviderDefaultActions;
