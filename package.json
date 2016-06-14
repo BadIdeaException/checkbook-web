@@ -13,6 +13,7 @@
     "grunt-contrib-jade": "^0.14.1",
     "grunt-contrib-sass": "^0.9.2",
     "grunt-contrib-watch": "^0.6.1",
+    "grunt-ngdocs": "^0.2.10",
     "http-static": "0.0.5",
     "jade": "^1.9.2",
     "karma": "^0.12.31",
