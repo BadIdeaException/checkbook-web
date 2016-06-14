@@ -58,17 +58,17 @@ describe('Resource', function() {
 		expect(resource).to.not.respondTo('$post');
 	});
 
-	it('should create a new cache when options.cache is true, and use a given cache if it is passed in options.cache', inject(function($cacheFactory) {
-		// Part 1: Check that a cache is correctly created
-		const URL = '/shouldbethecachename'
-		var Resource1 = $resource(URL, {}, {}, { cache: true });
-		expect(Resource1.cache).to.exist;
-		expect(Resource1.cache).to.equal($cacheFactory.get(URL));
+	it('should create a new store when options.store is true, and use a given store if it is passed in options.store', inject(function($cacheFactory) {
+		// Part 1: Check that a store is correctly created
+		const URL = '/shouldbethestorename'
+		var Resource1 = $resource(URL, {}, {}, { store: true });
+		expect(Resource1.store).to.exist;
+		expect(Resource1.store).to.equal($cacheFactory.get(URL));
 
-		// Part 2: Check that a provided cache is used
-		var cache = $cacheFactory('someothercache');
-		Resource2 = $resource('/', {}, {}, { cache: cache });
-		expect(Resource2.cache).to.equal(cache);
+		// Part 2: Check that a provided store is used
+		var store = $cacheFactory('someotherstore');
+		Resource2 = $resource('/', {}, {}, { store: store });
+		expect(Resource2.store).to.equal(store);
 	}));
 
 	it('.save should update when an id is present and create when not', function() {
@@ -98,32 +98,32 @@ describe('Resource', function() {
 	});
 
 	describe('GET', function() {
-		var Resource, cache;
+		var Resource, store;
 
 		beforeEach(function() {
-			Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
-			cache = Resource.cache;
+			Resource = $resource('/:id', { id: '@id' }, null, { store: true });
+			store = Resource.store;
 		});
 
-		it('should retrieve a cached item if one is available', inject(function($q) {
+		it('should retrieve a stored item if one is available', inject(function($q) {
 			var resource = new Resource();
-			resource.$promise = $q.resolve(resource); // A real resource in the cache would have the $promise set, because 
-													  // the only way to get into the cache is through server interaction
+			resource.$promise = $q.resolve(resource); // A real resource in the store would have the $promise set, because 
+													  // the only way to get into the store is through server interaction
 
-			cache.put('/', resource);
+			store.put('/', resource);
 
 			$httpBackend
 				.expectGET('/')
 				.respond(500);
 
-			var cached = Resource.get();
+			var stored = Resource.get();
 
 			expect($httpBackend.flush).to.throw(); // No request should have been made to the server
 
-			expect(cached).to.equal(resource);
+			expect(stored).to.equal(resource);
 		}));
 
-		it('should cache the item returned from the server', function() {
+		it('should store the item returned from the server', function() {
 			const RESPONSE = {};
 
 			$httpBackend
@@ -133,10 +133,10 @@ describe('Resource', function() {
 			var returned = Resource.get(); 
 			$httpBackend.flush();
 
-			expect(cache.get('/')).to.equal(returned);
+			expect(store.get('/')).to.equal(returned);
 		});
 
-		it('should cache collection items as well as the collection', function() {
+		it('should store collection items as well as the collection', function() {
 			const RESPONSE = [ { id: 1 }, { id: 2 } ];
 
 			$httpBackend
@@ -146,17 +146,17 @@ describe('Resource', function() {
 			var collection = Resource.query();
 			$httpBackend.flush();
 			
-			expect(Resource.cache.get('/')).to.equal(collection);
-			expect(Resource.cache.get('/' + RESPONSE[0].id)).to.equal(collection[0]);
-			expect(Resource.cache.get('/' + RESPONSE[1].id)).to.equal(collection[1]);
+			expect(Resource.store.get('/')).to.equal(collection);
+			expect(Resource.store.get('/' + RESPONSE[0].id)).to.equal(collection[0]);
+			expect(Resource.store.get('/' + RESPONSE[1].id)).to.equal(collection[1]);
 		});
 	});
 
 	describe('POST/PUT', function() {
-		it('should write the item to the cache when creating', function() {
+		it('should write the item to the store when creating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
+			var Resource = $resource('/:id', { id: '@id' }, null, { store: true });
 			var resource = new Resource();
 
 			$httpBackend
@@ -168,13 +168,13 @@ describe('Resource', function() {
 
 			$httpBackend.flush();
 
-			expect(Resource.cache.get('/' + ID)).to.equal(returned);						
+			expect(Resource.store.get('/' + ID)).to.equal(returned);						
 		});
 
-		it('should write the item to the cache when updating', function() {
+		it('should write the item to the store when updating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { cache: true });
+			var Resource = $resource('/:id', { id: '@id' }, null, { store: true });
 			var resource = new Resource({ id: ID});
 
 			$httpBackend
@@ -186,13 +186,13 @@ describe('Resource', function() {
 
 			$httpBackend.flush();
 
-			expect(Resource.cache.get('/' + ID)).to.equal(returned);				
+			expect(Resource.store.get('/' + ID)).to.equal(returned);				
 		});
 	});
 
 	describe('DELETE', function() {
-		it('should remove the item from the cache', function() {
-			var Resource = $resource('/', null, null, { cache: true });
+		it('should remove the item from the store', function() {
+			var Resource = $resource('/', null, null, { store: true });
 			var resource = new Resource();
 
 			$httpBackend
@@ -202,13 +202,13 @@ describe('Resource', function() {
 			resource.$delete();
 			$httpBackend.flush();
 
-			expect(Resource.cache.get('/')).to.not.exist;
+			expect(Resource.store.get('/')).to.not.exist;
 		});
 	});
 
-	it('should subsequently read from the cache when getting', function() {
+	it('should subsequently read from the store when getting', function() {
 		const RESPONSE = { id: 1 };
-		var Resource = $resource('/', null, null, { cache: true });
+		var Resource = $resource('/', null, null, { store: true });
 		$httpBackend
 			.expectGET('/')
 			.respond(200, RESPONSE);

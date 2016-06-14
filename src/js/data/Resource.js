@@ -1,7 +1,7 @@
 "use strict";
 
 /**
- * Decorate angular's $resource factory to facilitate caching and the inclusion of an 'update' action (HTTP PUT as per REST specification)
+ * Decorate angular's $resource factory to facilitate use of a data store and the inclusion of an 'update' action (HTTP PUT as per REST specification)
  */
 (function() { // IIFE to keep this variable from polluting the global scope
 var resourceProviderDefaultActions;
@@ -34,13 +34,14 @@ angular
 
 		/**
 		 * Decorated version of the $resource factory function.
-		 * @param  {[type]} url           [description]
-		 * @param  {[type]} paramDefaults [description]
-		 * @param  {[type]} actions       [description]
-		 * @param  {Object} options       In addition to the options understood by the delegate version, the following are available:
-		 *    `readOnly`: If `true`, the resource will only have actions with method GET or HEAD
-		 *    `cache`: If `true`, a cache will be created using `url` as cache name or an existing one of that name retrieved. If a `Cache` object, it will be used.
-		 * @return {[type]}               [description]
+		 * @param  url
+		 * @param  [paramDefaults]
+		 * @param  [actions]
+		 * @param  {Object} [options] - In addition to the options understood by the delegate version, the following are available:
+		 * @param  {Boolean} [options.readonly] - If `true`, the resource will only have actions with method GET or HEAD
+		 * @param  {Store} [options.store] - If a `Store` object, it will be used to store resource instances (sort of like a cache)
+		 * @return {Resource}
+		 * @see {@link https://docs.angularjs.org/api/ngResource/service/$resource|the Angular documentation on $resource} for specifics on the params and return value.
 		 */
 		var decorated = function(url, paramDefaults, actions, options) {			
 			// Make sure parameters are defined objects and make copies so we can modify them
@@ -50,7 +51,7 @@ angular
 			// original options parameter (because I think it will trip up the original $resource when populating
 			// underlying $http config objects)
 			var newOptions = {};
-			[ 'readOnly', 'cache' ].forEach(function(key) { newOptions[key] = options[key]; delete options[key]; });			
+			[ 'readOnly', 'store' ].forEach(function(key) { newOptions[key] = options[key]; delete options[key]; });			
 
 
 			
@@ -62,10 +63,10 @@ angular
 
 			
 
-			if (newOptions.cache === true) // If newOptions.cache is used as a flag...
-				Resource.cache = $cacheFactory.get(url) || $cacheFactory(url); // ...retrieve or create cache...
-			else if (angular.isObject(newOptions.cache)) // ...otherwise, if it is a Cache object...
-				Resource.cache = newOptions.cache; // ...use that
+			if (newOptions.store === true) // If newOptions.store is used as a flag...
+				Resource.store = $cacheFactory.get(url) || $cacheFactory(url); // ...retrieve or create store...
+			else if (angular.isObject(newOptions.store)) // ...otherwise, if it is a Store object...
+				Resource.store = newOptions.store; // ...use that
 			
 
 
@@ -95,12 +96,12 @@ angular
 
 
 
-			function cachifyRead(delegateFn, actionUrl, actionParams) {
+			function storifyRead(delegateFn, actionUrl, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
-					// Attempt to read from cache, if cache is available
-					var result = Resource.cache && Resource.cache.get(expandUrl(actionUrl, params));
+					// Attempt to read from store, if store is available
+					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
 					if (result) {
 						$q.when(result, success); // Call success callback asynchronously
 						return result;
@@ -110,20 +111,20 @@ angular
 					result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) {
-						// Cache result if cache is available
-						Resource.cache && Resource.cache.put(expandUrl(actionUrl, params), resource);
+						// Store result if store is available
+						Resource.store && Resource.store.put(expandUrl(actionUrl, params), resource);
 						return resource;
 					});
 					return result;
 				};
 			}	
 
-			function cachifyCollection(delegateFn, actionUrl, actionParams) {
+			function storifyCollection(delegateFn, actionUrl, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
-					// Attempt to read from cache, if cache is available
-					var result = Resource.cache && Resource.cache.get(expandUrl(actionUrl, params));
+					// Attempt to read from store, if store is available
+					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
 					if (result) {
 						$q.resolve(result, success); // Call success callback asynchronously
 						return result;
@@ -133,14 +134,14 @@ angular
 					result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(collection) {
-						if (Resource.cache) {
-							// Cache result if cache is available
-							Resource.cache.put(expandUrl(actionUrl, params), collection);
-							// Cache collection elements individually
+						if (Resource.store) {
+							// Store result if store is available
+							Resource.store.put(expandUrl(actionUrl, params), collection);
+							// Store collection elements individually
 							var elementGetAction = actions.get || {};
 							var elementParams = angular.extend({}, params, elementGetAction.params, paramDefaults);
 							collection.forEach(function(element) {
-								Resource.cache.put(expandUrl(
+								Resource.store.put(expandUrl(
 									elementGetAction.url || url, 
 									elementParams, 
 									element), element);
@@ -153,7 +154,7 @@ angular
 				};
 			}
 
-			function cachifyWrite(delegateFn, actionUrl, actionParams) {
+			function storifyWrite(delegateFn, actionUrl, actionParams) {
 				return function(params, data, success, error) {			
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
@@ -161,15 +162,15 @@ angular
 					var result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) {
-						// Cache result if cache is available
-						Resource.cache && Resource.cache.put(expandUrl(actionUrl, params, resource), resource);
+						// Store result if store is available
+						Resource.store && Resource.store.put(expandUrl(actionUrl, params, resource), resource);
 						return resource;
 					});
 					return result;
 				};
 			}
 
-			function cachifyDelete(delegateFn, actionUrl, actionParams) {
+			function storifyDelete(delegateFn, actionUrl, actionParams) {
 				return function(params, data, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
@@ -177,24 +178,24 @@ angular
 					var result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) { 
-						// Remove from cache if cache is available
-						Resource.cache && Resource.cache.remove(expandUrl(actionUrl, params, resource));
+						// Remove from store if store is available
+						Resource.store && Resource.store.remove(expandUrl(actionUrl, params, resource));
 					});
 					return result;
 				};
 			}
 
-			if (newOptions.cache) angular.forEach(actions, function(action, name) {
+			if (newOptions.store) angular.forEach(actions, function(action, name) {
 				var delegateFn = Resource[name];
 				var cachifiedFn;
 				switch (action.method.toUpperCase()) {
 					case 'GET': 
-						if (action.isArray) cachifiedFn = cachifyCollection(delegateFn, action.url || url, action.params)
-						else cachifiedFn = cachifyRead(delegateFn, action.url || url, action.params);
+						if (action.isArray) cachifiedFn = storifyCollection(delegateFn, action.url || url, action.params)
+						else cachifiedFn = storifyRead(delegateFn, action.url || url, action.params);
 						break;
 					case 'POST':
-					case 'PUT': cachifiedFn = cachifyWrite(delegateFn, action.url || url, action.params); break;
-					case 'DELETE': cachifiedFn = cachifyDelete(delegateFn, action.url || url, action.params); break;
+					case 'PUT': cachifiedFn = storifyWrite(delegateFn, action.url || url, action.params); break;
+					case 'DELETE': cachifiedFn = storifyDelete(delegateFn, action.url || url, action.params); break;
 				}				
 				Resource[name] = cachifiedFn;
 			});

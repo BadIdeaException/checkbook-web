@@ -17,7 +17,7 @@
  * - URLs containing a fragment (#): The fragment part will be dropped
  * 
  * NOTE: This function does not encode special characters as they would normally be.
- * But since these are only going to be used as cache keys, that shouldn't matter
+ * But since these are only going to be used as store keys, that shouldn't matter
  *
  * @param {string} url The URL template to expand.
  * @param params Placeholder mappings

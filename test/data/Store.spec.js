@@ -1,4 +1,4 @@
-describe('Cache', function() {
+describe('Store', function() {
 	beforeEach(angular.mock.module('Checkbook'));
 
 	const DEFAULT_KEYGEN = {
@@ -6,34 +6,34 @@ describe('Cache', function() {
 		coll: function(x) { return '/'; }
 	};
 
-	var Cache;
-	beforeEach(inject(function(_Cache_) {
-		Cache = _Cache_;
+	var Store;
+	beforeEach(inject(function(_Store_) {
+		Store = _Store_;
 	}));
 
 	it('should throw on missing or invalid keygen', function() {
-		function creator(keygen) { return new Cache(keygen); } // Needed because we can't use new keyword inside expect
-		expect(creator).to.throw(TypeError);		
-		expect(creator.bind(null, {})).to.throw(TypeError);
+		function constructor(keygen) { return new Store(keygen); } // Needed because we can't use new keyword inside expect
+		expect(constructor).to.throw(TypeError);		
+		expect(constructor.bind(null, {})).to.throw(TypeError);
 	});
 
 	describe('.put', function() {
-		var cache;
+		var store;
 		beforeEach(function() {
-			cache = new Cache(DEFAULT_KEYGEN);
+			store = new Store(DEFAULT_KEYGEN);
 		});
 
 		it('should fail if item is not an object', function() {
-			expect(cache.put.bind(cache,'item')).to.throw(TypeError, /was not an object/);
+			expect(store.put.bind(store,'item')).to.throw(TypeError, /was not an object/);
 		});
 
 		it('should contain the added item', function() {
 			const KEY = 'key';
 			var item = {};
 
-			cache.put(KEY, item);
+			store.put(KEY, item);
 
-			expect(cache.items[KEY]).to.equal(item);
+			expect(store.items[KEY]).to.equal(item);
 		});		
 
 		it('should autogenerate a key using the key function', function() {
@@ -43,58 +43,58 @@ describe('Cache', function() {
 				elem: sinon.stub().returns(ELEM_KEY), 
 				coll: sinon.stub().returns(COLL_KEY)
 			}
-			cache = new Cache(keygen);
+			store = new Store(keygen);
 			var x = {};
 
-			cache.put(x);
+			store.put(x);
 			expect(keygen.elem).to.have.been.called;
-			expect(cache.items[ELEM_KEY]).to.equal(x);
+			expect(store.items[ELEM_KEY]).to.equal(x);
 
 			x = [];
-			cache.put(x);
+			store.put(x);
 			expect(keygen.coll).to.have.been.called;
-			expect(cache.items[COLL_KEY]).to.equal(x);
+			expect(store.items[COLL_KEY]).to.equal(x);
 		});
 
 		it('should add all elements of a collection', function() {
 			var coll = [ { id: 1 }, { id: 2} ];
 
-			cache.put(coll);
-			expect(cache.items[DEFAULT_KEYGEN.coll(coll)]).to.equal(coll); // Collection itself should have been added
+			store.put(coll);
+			expect(store.items[DEFAULT_KEYGEN.coll(coll)]).to.equal(coll); // Collection itself should have been added
 			for (var i = 0; i < coll.length; i++) 
-				expect(cache.items[DEFAULT_KEYGEN.elem(coll[i])]).to.equal(coll[i]); // All items should have been added		
+				expect(store.items[DEFAULT_KEYGEN.elem(coll[i])]).to.equal(coll[i]); // All items should have been added		
 		});
 
 		it('should add elements into already present collections', function() {
 			var coll = [];
 			var item = { id: 1 };
-			cache.put(coll);
-			cache.put(item);
-			expect(cache.get(DEFAULT_KEYGEN.coll(coll))).to.contain(item);
+			store.put(coll);
+			store.put(item);
+			expect(store.get(DEFAULT_KEYGEN.coll(coll))).to.contain(item);
 		});
 	});
 
 	describe('.remove', function() {
 		it('should not contain an item after it has been removed', function() {
 			const KEY = 'key';
-			var cache = new Cache(DEFAULT_KEYGEN);
+			var store = new Store(DEFAULT_KEYGEN);
 			var item = {};
 
-			cache.items[KEY] = item;
-			cache.remove(KEY);
+			store.items[KEY] = item;
+			store.remove(KEY);
 
-			expect(cache.get(KEY)).to.not.exist;
+			expect(store.get(KEY)).to.not.exist;
 		});
 
 		it('should also remove an item from its collection', function() {
-			var cache = new Cache(DEFAULT_KEYGEN);
+			var store = new Store(DEFAULT_KEYGEN);
 			var item = { id: 1 };
 			var coll = [ item ];
 
-			cache.put(coll);
-			cache.remove(DEFAULT_KEYGEN.elem(item));
+			store.put(coll);
+			store.remove(DEFAULT_KEYGEN.elem(item));
 
-			expect(cache.get(DEFAULT_KEYGEN.coll(coll))).to.be.empty;
+			expect(store.get(DEFAULT_KEYGEN.coll(coll))).to.be.empty;
 		})
 	});
 });
