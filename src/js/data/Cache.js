@@ -70,7 +70,7 @@ angular
 			
 			// If adding a collection, add all elements of that collection as well
 			if (isCollection(item)) {
-				item.forEach(function(item) { self.put(item) });
+				item.forEach(function(item) { self.items[self.keygen.elem(item)] = item; });
 			}
 
 			// If we add an element, and there is a collection that this element

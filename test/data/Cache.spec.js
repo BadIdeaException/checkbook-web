@@ -1,4 +1,4 @@
-describe.only('Cache', function() {
+describe('Cache', function() {
 	beforeEach(angular.mock.module('Checkbook'));
 
 	const DEFAULT_KEYGEN = {
