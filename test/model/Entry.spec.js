@@ -41,4 +41,26 @@ describe('Entry', function() {
 		expect(entry.equals(different)).to.be.false;
 	});
 
+	it('should be an event emitter', function() {
+		var entry = new Entry(ENTRY);
+
+		['on', 'off', 'emit'].forEach(function(method) {
+			expect(entry).to.respondTo(method);
+		});
+	});
+
+	it('should emit an event when changing datetime or category', function() {
+		var entry = new Entry(ENTRY);
+		var datetimeHandler = sinon.spy();
+		var categoryHandler = sinon.spy();
+
+		entry.on('datetime', datetimeHandler);
+		entry.on('category', categoryHandler);
+		
+		entry.datetime = new Date();
+		entry.category++;
+
+		expect(datetimeHandler).to.have.been.calledWith(ENTRY.datetime, entry.datetime);
+		expect(categoryHandler).to.have.been.calledWith(ENTRY.category, entry.category);
+	});
 });
