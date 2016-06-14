@@ -1,8 +1,5 @@
 "use strict";
 
-/**
- * Decorate angular's $resource factory to facilitate use of a data store and the inclusion of an 'update' action (HTTP PUT as per REST "specification")
- */
 (function() { // IIFE to keep this variable from polluting the global scope
 var resourceProviderDefaultActions;
 
@@ -19,7 +16,7 @@ angular
 		};
 	}])
 	.decorator('$resource', [ '$delegate', '$cacheFactory', '$q', 'expandUrl', function($delegate, $cacheFactory, $q, expandUrl) {
-		/**
+		/*
 		 * Removes all action methods (both static and instance versions) from `Resource` that are using
 		 * methods other than GET or HEAD.
 		 * @param  {Resource} Resource The Resource constructor to work on
@@ -33,53 +30,60 @@ angular
 		}
 
 		/**
-		 * Decorated version of the $resource factory function.
-		 * @param  url
-		 * @param  [paramDefaults]
-		 * @param  [actions]
-		 * @param  {Object} [options] - In addition to the options understood by the delegate version, the following are available:
-		 * @param  {Boolean} [options.readonly] - If `true`, the resource will only have actions with method GET or HEAD
-		 * @param  {Store} [options.store] - If a `Store` object, it will be used to store resource instances (sort of like a cache)
-		 * @return {Resource}
-		 * @see {@link https://docs.angularjs.org/api/ngResource/service/$resource|the Angular documentation on $resource} for specifics on the params and return value.
+		 * @ngdoc service
+		 * @name  $resource
+		 * @description
+		 * Decorated version of the $resource factory function. On top of the functionality provided by the Angular `$resource` implementation, it
+		 * can make resources read-only, has an `update` action (HTTP PUT) by default and has built-in support for using a {@link Store}.
+		 * 
+		 * See the {@link https://docs.angularjs.org/api/ngResource/service/$resource|the Angular documentation on $resource} for specifics on the params and return value.
+		 * @param {String} url &nbsp;
+		 * @param {Object=} paramDefaults &nbsp;
+		 * @param {Object=} actions &nbsp;
+		 * @param  {Object=} options In addition to the options understood by the delegate version, the following are available:
+		 * - **`readonly`** - {Boolean=} - If `true`, the resource will only have actions with method GET or HEAD
+		 * - **`store`** - {Store=} - If a `Store` object, it will be used to store resource instances. Even though this closely
+		 * resembles a cache, the term is avoided because it implies the result of querying a cache will always be either the same as
+		 * that obtained from the server, or the server will have newer data. Here, on the contrary, the newer data may be the version in
+		 * the store.
+		 * @return {Resource} The resource constructor created by Angular's $resource factory and decorated
 		 */
 		var decorated = function(url, paramDefaults, actions, options) {			
-			// Make sure parameters are defined objects and make copies so we can modify them
+			// Make sure actions param is defined and make a copy so we can safely modify
 			actions = angular.extend({}, resourceProviderDefaultActions, actions);
-			options = angular.extend({}, options);
-			// Copy over those options introduced by us over into a new object, then remove them from the
-			// original options parameter (because I think it will trip up the original $resource when populating
-			// underlying $http config objects)
-			var newOptions = {};
-			[ 'readOnly', 'store' ].forEach(function(key) { newOptions[key] = options[key]; delete options[key]; });			
+			options = options || {};
 
 
 			
 			// Call through to the delegate factory
 			var Resource = $delegate(url, paramDefaults, actions, options);			
 			// If the resource is supposed to be read-only, remove all methods that are not GET or HEAD actions
-			if (newOptions.readOnly)
+			if (options.readOnly)
 				removeWriteActions(Resource, actions);
 
 			
 
-			if (angular.isObject(newOptions.store)) // If a Store object was provided, use it
-				Resource.store = newOptions.store;
+			if (angular.isObject(options.store)) // If a Store object was provided, use it
+				Resource.store = options.store;
 			
 
 
-			// This instance method will not be present if newOptions.readOnly flag is set
-			Resource.prototype.$save = !newOptions.readOnly && function(params, success, error) {
+			// This instance method will not be present if options.readOnly flag is set
+			Resource.prototype.$save = !options.readOnly && function(params, success, error) {
 				return Resource.save(params, this, success, error);
 			};
 
 			/**
+			 * @ngdoc method
+			 * @methodOf $resource
+			 * @name save
+			 * @description
 			 * Convenience method that executes the update action if an `id` field is defined on the `data`,
-			 * and the create action if it isn't.
+			 * and the create action if it isn't. It follows the same conventions as the standard Angular `$resource` actions.
 			 *
 			 * This method and its instance version `$save` will not be present in resources created with the `options.readOnly` flag set 
 			 */
-			Resource.save = !newOptions.readOnly && function(params, data, success, error) {
+			Resource.save = !options.readOnly && function(params, data, success, error) {
 				// If the second parameter is not an object, then params must have been omitted,
 				// because the two following ones, if present, are functions
 				// So reassign parameters to account for this (although some of them might be undefined anyway)
@@ -183,7 +187,7 @@ angular
 				};
 			}
 
-			if (newOptions.store) angular.forEach(actions, function(action, name) {
+			if (options.store) angular.forEach(actions, function(action, name) {
 				var delegateFn = Resource[name];
 				var cachifiedFn;
 				switch (action.method.toUpperCase()) {
