@@ -1,4 +1,4 @@
-angular.module('Checkbook.Model').factory('Entry', [ '$resource', function($resource) {
+angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter', function($resource, eventEmitter) {
 	var _Entry = $resource(
 		'/entries/:id',
 		{ id: '@id' },
@@ -37,10 +37,13 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', function($reso
 				enumerable: true,
 				get: function() { return _datetime; },
 				set: function(datetime) { 
+					var self = this;
 					_datetime = datetime;
 				}		
 		});
 	}
+
+	eventEmitter.inject(Entry);
 
 	// Copy over static methods
 	angular.merge(Entry, _Entry);

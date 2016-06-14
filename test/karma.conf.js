@@ -22,6 +22,7 @@ module.exports = function(config) {
         'bower_components/angular-cookies/angular-cookies.js',
         'bower_components/angular-resource/angular-resource.js',
         'bower_components/angular-mocks/angular-mocks.js',
+        'bower_components/angular-tiny-eventemitter/dist/angular-tiny-eventemitter.js',
         'src/js/app.js',
         'src/js/**/_*.js', // Make sure underscore files are loaded first - they are where module definitions will occur
         'src/js/**/*.js',
