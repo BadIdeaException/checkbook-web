@@ -10,7 +10,7 @@ module.exports = function(config) {
 
     // frameworks to use
     // available frameworks: https://npmjs.org/browse/keyword/karma-adapter
-    frameworks: ['mocha', 'chai-as-promised', 'sinon-chai', 'chai'],
+    frameworks: ['mocha', 'chai-as-promised', 'sinon-chai', 'chai', 'es6-shim'],
 
 
     // list of files / patterns to load in the browser
@@ -69,7 +69,7 @@ module.exports = function(config) {
     // browsers: ['Firefox'],
 
 
-    plugins: ['karma-phantomjs-launcher', 'karma-mocha', 'karma-chai', 'karma-chai-as-promised', 'karma-sinon-chai', 'karma-mocha-reporter'],
+    plugins: ['karma-phantomjs-launcher', 'karma-mocha', 'karma-chai', 'karma-chai-as-promised', 'karma-sinon-chai', 'karma-mocha-reporter', 'karma-es6-shim'],
 
 
     // Continuous Integration mode
