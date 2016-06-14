@@ -63,10 +63,8 @@ angular
 
 			
 
-			if (newOptions.store === true) // If newOptions.store is used as a flag...
-				Resource.store = $cacheFactory.get(url) || $cacheFactory(url); // ...retrieve or create store...
-			else if (angular.isObject(newOptions.store)) // ...otherwise, if it is a Store object...
-				Resource.store = newOptions.store; // ...use that
+			if (angular.isObject(newOptions.store)) // If a Store object was provided, use it
+				Resource.store = newOptions.store;
 			
 
 

@@ -2,11 +2,13 @@ describe('Resource', function() {
 	beforeEach(angular.mock.module('Checkbook'));
 
 	var $resource,
-		$httpBackend;
+		$httpBackend,
+		$cacheFactory;
 
-	beforeEach(inject(function(_$resource_, _$httpBackend_) {
+	beforeEach(inject(function(_$resource_, _$httpBackend_, _$cacheFactory_) {
 		$resource = _$resource_;
 		$httpBackend = _$httpBackend_;
+		$cacheFactory = _$cacheFactory_;
 	}));
 
 	it('should have get, query, create, update, delete and remove actions and a save method per default', function() {
@@ -58,17 +60,10 @@ describe('Resource', function() {
 		expect(resource).to.not.respondTo('$post');
 	});
 
-	it('should create a new store when options.store is true, and use a given store if it is passed in options.store', inject(function($cacheFactory) {
-		// Part 1: Check that a store is correctly created
-		const URL = '/shouldbethestorename'
-		var Resource1 = $resource(URL, {}, {}, { store: true });
-		expect(Resource1.store).to.exist;
-		expect(Resource1.store).to.equal($cacheFactory.get(URL));
-
-		// Part 2: Check that a provided store is used
-		var store = $cacheFactory('someotherstore');
-		Resource2 = $resource('/', {}, {}, { store: store });
-		expect(Resource2.store).to.equal(store);
+	it('should use a store object passed in options.store', inject(function($cacheFactory) {		
+		var store = $cacheFactory();
+		Resource = $resource('/', {}, {}, { store: store });
+		expect(Resource.store).to.equal(store);
 	}));
 
 	it('.save should update when an id is present and create when not', function() {
@@ -101,7 +96,7 @@ describe('Resource', function() {
 		var Resource, store;
 
 		beforeEach(function() {
-			Resource = $resource('/:id', { id: '@id' }, null, { store: true });
+			Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			store = Resource.store;
 		});
 
@@ -156,7 +151,7 @@ describe('Resource', function() {
 		it('should write the item to the store when creating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { store: true });
+			var Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			var resource = new Resource();
 
 			$httpBackend
@@ -174,7 +169,7 @@ describe('Resource', function() {
 		it('should write the item to the store when updating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { store: true });
+			var Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			var resource = new Resource({ id: ID});
 
 			$httpBackend
@@ -192,7 +187,7 @@ describe('Resource', function() {
 
 	describe('DELETE', function() {
 		it('should remove the item from the store', function() {
-			var Resource = $resource('/', null, null, { store: true });
+			var Resource = $resource('/', null, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			var resource = new Resource();
 
 			$httpBackend
@@ -208,7 +203,7 @@ describe('Resource', function() {
 
 	it('should subsequently read from the store when getting', function() {
 		const RESPONSE = { id: 1 };
-		var Resource = $resource('/', null, null, { store: true });
+		var Resource = $resource('/', null, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 		$httpBackend
 			.expectGET('/')
 			.respond(200, RESPONSE);
