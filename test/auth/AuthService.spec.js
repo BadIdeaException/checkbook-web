@@ -146,7 +146,7 @@ describe('AuthService', function() {
 			expect(authService.negotiating).to.be.true;
 		});
 
-		it('should store the new tokens after successful negotiations', function() {
+		it.only('should store the new tokens after successful negotiations', inject(function($document) {
 			$httpBackend
 				.expectPOST('/oauth/token')
 				.respond(200, { access_token: TOKENS.access, refresh_token: TOKENS.refresh });
@@ -158,7 +158,7 @@ describe('AuthService', function() {
 				.negotiate()
 				.then(function() { 
 					accessStored = put.calledWith('access_token', TOKENS.access);
-					refreshStored = put.calledWith('refresh_token', TOKENS.refresh);
+					refreshStored = put.calledWith('refresh_token', TOKENS.refresh);					
 				});
 
 			$httpBackend.flush(); $rootScope.$apply();
@@ -166,7 +166,7 @@ describe('AuthService', function() {
 			expect(accessStored).to.be.true;
 			expect(refreshStored).to.be.true;
 			put.restore();
-		});
+		}));
 
 		it('should remove the refresh token after failed negotiations', function() {
 			var remove = sinon.spy($cookies, 'remove');

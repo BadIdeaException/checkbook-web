@@ -1,30 +1,30 @@
-// System description
-
-// This module is there to handle the authorization when accessing the Checkbook server.
-// It should do it transparently whenever possible. 
-
-// If an access token is available, it is attached in the HTTP authorization header, 
-// if one is not already present. If no access token is available, the request is optimistically
-// sent anyway because there is no client side knowledge about whether the request will
-// require authorization or not.
-
-// On receiving a 401 response, the service will attempt to acquire a new access token. For this,
-// it will first try to negotiate a refresh token for a new access token (a new refresh token will
-// also be issued if this succeeds). If this is successful, the original request is rerun with 
-// the new access token.
-
-// If no refresh token is available, or negotiation failed, the user is redirected to the login page.
-// The original request will be failed and not automatically rerun after successful login. This is because
-// there will likely be a redirect from the login to a content page, causing a fresh request and thus
-// rendering this one obsolete.
-
-// If any 401 responses that come in while this service is negotiating, their requests will be queued
-// and rerun after negotiations were successful. The original responses will be resolved to the values
-// of their reruns. If negotiations fail, the 401 responses are allowed to propagate. In effect, this 
-// allows successful negotiations to remain transparent for queued requests as well - if a fresh access
-// token can be gotten by exchanging a refresh token for it, this will remain invisible to the code
-// generating the requests.
-
+/**
+ * # System description
+ * This module is there to handle the authorization when accessing the Checkbook server.
+ * It should do it transparently whenever possible. 
+ *
+ * If an access token is available, it is attached in the HTTP authorization header, 
+ * if one is not already present. If no access token is available, the request is optimistically
+ * sent anyway because there is no client side knowledge about whether the request will
+ * require authorization or not.
+ *
+ * On receiving a 401 response, the service will attempt to acquire a new access token. For this,
+ * it will first try to negotiate a refresh token for a new access token (a new refresh token will
+ * also be issued if this succeeds). If this is successful, the original request is rerun with 
+ * the new access token.
+ *
+ * If no refresh token is available, or negotiation failed, the user is redirected to the login page.
+ * The original request will be failed and not automatically rerun after successful login. This is because
+ * there will likely be a redirect from the login to a content page, causing a fresh request and thus
+ * rendering this one obsolete.
+ *
+ * If any 401 responses that come in while this service is negotiating, their requests will be queued
+ * and rerun after negotiations were successful. The original responses will be resolved to the values
+ * of their reruns. If negotiations fail, the 401 responses are allowed to propagate. In effect, this 
+ * allows successful negotiations to remain transparent for queued requests as well - if a fresh access
+ * token can be gotten by exchanging a refresh token for it, this will remain invisible to the code
+ * generating the requests.
+ */
 var module = angular.module('Checkbook.Auth', [ 'ngCookies' ]);
 
 module.factory('authService', [ '$cookies', '$injector', '$q', '$location', function($cookies, $injector, $q, $location) {
@@ -33,6 +33,14 @@ module.factory('authService', [ '$cookies', '$injector', '$q', '$location', func
 
 	// The server route at which token negotiation takes place
 	const TOKEN_ROUTE = '/oauth/token';
+
+	/**
+	 * The default options for storing the tokens in cookies. The path is set to a non-existent path to
+	 * prevent the tokens being transmitted in the cookie header. Even though this should prevent them
+	 * from ever being transmitted (save for the authorization header), the secure flag is set for good
+	 * measure
+	 */
+	const COOKIE_OPTIONS = { path: '/doesnotexist', secure: true };
 
 	var auth = {
 		pending: [],
@@ -45,9 +53,11 @@ module.factory('authService', [ '$cookies', '$injector', '$q', '$location', func
 			}
 			return config;
 		},
-		// Try to exchange the provided refresh token for a new token pair.
-		// This is the Refresh Token Flow (RFC 6749 Section 6)
-		// @Returns A promise resolving to an object { access, refresh }
+		/**
+		 * Try to exchange the provided refresh token for a new token pair.
+		 * This is the Refresh Token Flow (RFC 6749 Section 6)
+		 * @returns {Promise} A promise resolving to an object { access, refresh }
+		 */
 		refresh: function(token) {
 			var $http = $injector.get('$http');
 
@@ -61,9 +71,11 @@ module.factory('authService', [ '$cookies', '$injector', '$q', '$location', func
 					return $q.reject(response.data);
 				});
 		},
-		// Try to get a new token pair using the user's credentials.
-		// This is the Resource Owner Credentials Flow (RFC 6749 Section 4.3)
-		// @Returns A promise resolving to an object { access, refresh }
+		/**
+		 * Try to get a new token pair using the user's credentials.
+		 * This is the Resource Owner Credentials Flow (RFC 6749 Section 4.3)
+		 * @returns {Promise} A promise resolving to an object { access, refresh }
+		 */
 		credentials: function(username, password) {
 			var $http = $injector.get('$http');
 			return $http
@@ -84,8 +96,8 @@ module.factory('authService', [ '$cookies', '$injector', '$q', '$location', func
 				.refresh()
 				.then(function(tokens) {
 					// Update tokens
-					$cookies.put(ACCESS_TOKEN_KEY, tokens.access);
-					$cookies.put(REFRESH_TOKEN_KEY, tokens.refresh);					
+					$cookies.put(ACCESS_TOKEN_KEY, tokens.access, COOKIE_OPTIONS);
+					$cookies.put(REFRESH_TOKEN_KEY, tokens.refresh, COOKIE_OPTIONS);					
 					// Promise will resolve to access token now
 					return tokens.access;
 				})
