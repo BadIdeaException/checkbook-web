@@ -23,6 +23,10 @@ describe('Cache', function() {
 			cache = new Cache(DEFAULT_KEYGEN);
 		});
 
+		it('should fail if item is not an object', function() {
+			expect(cache.put.bind(cache,'item')).to.throw(TypeError, /was not an object/);
+		});
+
 		it('should contain the added item', function() {
 			const KEY = 'key';
 			var item = {};
@@ -30,7 +34,7 @@ describe('Cache', function() {
 			cache.put(KEY, item);
 
 			expect(cache.items[KEY]).to.equal(item);
-		});
+		});		
 
 		it('should autogenerate a key using the key function', function() {
 			const ELEM_KEY = 'elem';
