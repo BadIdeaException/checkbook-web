@@ -18,6 +18,14 @@
  * 
  * NOTE: This function does not encode special characters as they would normally be.
  * But since these are only going to be used as cache keys, that shouldn't matter
+ *
+ * @param {string} url The URL template to expand.
+ * @param params Placeholder mappings
+ * @param data Object to read values from if `params` contains property accessors
+ *                    
+ * See {@link https://docs.angularjs.org/api/ngResource/service/$resource|the Angular documentation on $resource} for specifics on these params.
+ *
+ * @return {string} The URL template with all placeholders replaced by values.
  */
 function expandUrl(url, params, data) {
 	function substitute(placeholder) {
