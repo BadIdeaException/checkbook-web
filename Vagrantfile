@@ -10,6 +10,11 @@ Vagrant.configure(2) do |config|
   # options are documented and commented below. For a complete reference,
   # please see the online documentation at vagrantup.com.
 
+  # Increase memory to 1GB to avoid npm failing
+  config.vm.provider "virtualbox" do |v|
+    v.memory = 1024
+  end
+
   # Every Vagrant virtual environment requires a box to build off of.
   config.vm.box = "ubuntu/trusty64"
 
@@ -30,13 +35,13 @@ Vagrant.configure(2) do |config|
   config.vm.network "forwarded_port", guest: 8080, host: 80
   config.vm.network "forwarded_port", guest: 8443, host: 443
 
-  # Install nodejs
+  # Install nodejs v6.x (LTS from Oct 2016)
   # Even though the server runs virtualized in a docker container, 
   # nodejs is still needed to run grunt, npm etc. in the 
   # development environment
   config.vm.provision "shell" do |shell|
     shell.name = "Install node.js"
-    shell.inline = "curl -sL https://deb.nodesource.com/setup | bash - && apt-get install -y nodejs"
+    shell.inline = "curl -sL https://deb.nodesource.com/setup_6.x | bash - && apt-get install -y nodejs"
   end
 
   # Install the build-essential package (can't hurt) and the package
@@ -54,7 +59,8 @@ Vagrant.configure(2) do |config|
 
   config.vm.provision "shell" do |shell|
     shell.name = "Install checkbook dependencies"
-    shell.inline = "cd /home/checkbook-web && npm install"
+    shell.privileged = false
+    shell.inline = "cd /home/checkbook-web && npm install && bower install"
   end
 
   # Automatically run grunt watch when starting the machine
