@@ -104,7 +104,7 @@ angular
 			function storifyRead(delegateFn, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
-					params = angular.extend({}, params, actionParams, paramDefaults);
+					params = angular.extend({}, paramDefaults, actionParams, params);
 					// Attempt to read from store, if store is available
 					var result = Resource.store && Resource.store.get(expandUrl(url, params));
 					if (result) {
@@ -127,7 +127,7 @@ angular
 			function storifyCollection(delegateFn, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
-					params = angular.extend({}, params, actionParams, paramDefaults);
+					params = angular.extend({}, paramDefaults, actionParams, params);
 					// Attempt to read from store, if store is available
 					var result = Resource.store && Resource.store.get(expandUrl(url, params));
 					if (result) {
@@ -144,7 +144,7 @@ angular
 							Resource.store.put(expandUrl(url, params), collection);
 							// Store collection elements individually
 							var elementGetAction = actions.get || {};
-							var elementParams = angular.extend({}, params, elementGetAction.params, paramDefaults);
+							var elementParams = angular.extend({}, paramDefaults, elementGetAction.params, params);
 							collection.forEach(function(element) {
 								Resource.store.put(expandUrl(
 									elementGetAction.url || url, 
@@ -162,7 +162,7 @@ angular
 			function storifyWrite(delegateFn, actionParams) {
 				return function(params, data, success, error) {			
 					// Calculate effective parameters
-					params = angular.extend({}, params, actionParams, paramDefaults);
+					params = angular.extend({}, paramDefaults, actionParams, params);
 					// Always call through to delegate function					
 					var result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
@@ -178,7 +178,7 @@ angular
 			function storifyDelete(delegateFn, actionParams) {
 				return function(params, data, success, error) {
 					// Calculate effective parameters
-					params = angular.extend({}, params, actionParams, paramDefaults);
+					params = angular.extend({}, paramDefaults, actionParams, params);
 					// Always call through to delegate function
 					var result = delegateFn.apply(this, arguments);
 					var promise = result.$promise || result; // Instance calls return the promise directly
