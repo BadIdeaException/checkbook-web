@@ -4,8 +4,8 @@ module.exports = {
 	},
 
 	checkbook: {
-		title: 'Checkbook',
-		version: '1',
+		title: '<%= pkg.title %>',
+		version: '<%= pkg.version %>',
 		expand: true,
 		dest: 'docs',
 		src: ['src/js/**/*.js']
