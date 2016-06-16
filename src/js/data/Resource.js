@@ -84,6 +84,7 @@ angular
 					 * and the create action if it isn't. It follows the same conventions as the standard Angular `$resource` actions.
 					 *
 					 * This method and its instance version `$save` will not be present in resources created with the `options.readOnly` flag set 
+					 * @param params
 					**/
 					function(params, data, success, error) {
 						// If the second parameter is not an object, then params must have been omitted,
@@ -100,12 +101,12 @@ angular
 
 
 
-			function storifyRead(delegateFn, actionUrl, actionParams) {
+			function storifyRead(delegateFn, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
 					// Attempt to read from store, if store is available
-					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
+					var result = Resource.store && Resource.store.get(expandUrl(url, params));
 					if (result) {
 						$q.when(result, success); // Call success callback asynchronously
 						return result;
@@ -116,19 +117,19 @@ angular
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) {
 						// Store result if store is available
-						if (Resource.store) Resource.store.put(expandUrl(actionUrl, params), resource);
+						if (Resource.store) Resource.store.put(expandUrl(url, params), resource);
 						return resource;
 					});
 					return result;
 				};
 			}	
 
-			function storifyCollection(delegateFn, actionUrl, actionParams) {
+			function storifyCollection(delegateFn, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
 					// Attempt to read from store, if store is available
-					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
+					var result = Resource.store && Resource.store.get(expandUrl(url, params));
 					if (result) {
 						$q.resolve(result, success); // Call success callback asynchronously
 						return result;
@@ -140,7 +141,7 @@ angular
 					promise.then(function(collection) {
 						if (Resource.store) {
 							// Store result if store is available
-							Resource.store.put(expandUrl(actionUrl, params), collection);
+							Resource.store.put(expandUrl(url, params), collection);
 							// Store collection elements individually
 							var elementGetAction = actions.get || {};
 							var elementParams = angular.extend({}, params, elementGetAction.params, paramDefaults);
@@ -158,7 +159,7 @@ angular
 				};
 			}
 
-			function storifyWrite(delegateFn, actionUrl, actionParams) {
+			function storifyWrite(delegateFn, actionParams) {
 				return function(params, data, success, error) {			
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
@@ -167,14 +168,14 @@ angular
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) {
 						// Store result if store is available
-						if (Resource.store) Resource.store.put(expandUrl(actionUrl, params, resource), resource);
+						if (Resource.store) Resource.store.put(expandUrl(url, params, resource), resource);
 						return resource;
 					});
 					return result;
 				};
 			}
 
-			function storifyDelete(delegateFn, actionUrl, actionParams) {
+			function storifyDelete(delegateFn, actionParams) {
 				return function(params, data, success, error) {
 					// Calculate effective parameters
 					params = angular.extend({}, params, actionParams, paramDefaults);
@@ -183,7 +184,7 @@ angular
 					var promise = result.$promise || result; // Instance calls return the promise directly
 					promise.then(function(resource) { 
 						// Remove from store if store is available
-						if (Resource.store) Resource.store.remove(expandUrl(actionUrl, params, resource));
+						if (Resource.store) Resource.store.remove(expandUrl(url, params, resource));
 					});
 					return result;
 				};
@@ -194,12 +195,12 @@ angular
 				var cachifiedFn;
 				switch (action.method.toUpperCase()) {
 					case 'GET': 
-						if (action.isArray) cachifiedFn = storifyCollection(delegateFn, action.url || url, action.params)
-						else cachifiedFn = storifyRead(delegateFn, action.url || url, action.params);
+						if (action.isArray) cachifiedFn = storifyCollection(delegateFn, action.params)
+						else cachifiedFn = storifyRead(delegateFn, action.params);
 						break;
 					case 'POST':
-					case 'PUT': cachifiedFn = storifyWrite(delegateFn, action.url || url, action.params); break;
-					case 'DELETE': cachifiedFn = storifyDelete(delegateFn, action.url || url, action.params); break;
+					case 'PUT': cachifiedFn = storifyWrite(delegateFn, action.params); break;
+					case 'DELETE': cachifiedFn = storifyDelete(delegateFn, action.params); break;
 				}				
 				Resource[name] = cachifiedFn;
 			});
