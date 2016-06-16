@@ -126,8 +126,8 @@ describe('Store', function() {
 
 		var item = {};
 		store.items[DEFAULT_KEYGEN.elem(item)] = item; 
-		
-		store.onItemChanged(item, PROPERTY_NAME, 'val');
+
+		store.onItemChanged(item, PROPERTY_NAME);
 		expect(remove).to.have.been.calledWith(DEFAULT_KEYGEN.elem(item));
 		expect(put).to.have.been.calledWith(item);
 	});
