@@ -32,7 +32,7 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 					var old = _category; // Remember old value for event emission
 					_category = category;
 					if (old !== category) // Was there actually a change?
-						self.emit('category', old, category);
+						self.emit('change', self, 'category', old, category);
 				}
 		});
 
@@ -41,11 +41,11 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 				enumerable: true,
 				get: function() { return _datetime; },
 				set: function(datetime) { 
-					var self = this;
+					var self = this;					
 					var old = _datetime; // Remember old value for event emission
 					_datetime = datetime;
 					if (old && datetime && old.getTime() !== datetime.getTime() || !old || !datetime) // Was there actually a change?
-						self.emit('datetime', old, datetime);
+						self.emit('change', self, 'datetime', old, datetime);
 				}		
 		});
 	}

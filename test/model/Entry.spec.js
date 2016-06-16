@@ -54,13 +54,13 @@ describe('Entry', function() {
 		var datetimeHandler = sinon.spy();
 		var categoryHandler = sinon.spy();
 
-		entry.on('datetime', datetimeHandler);
-		entry.on('category', categoryHandler);
+		entry.on('change', datetimeHandler);
+		entry.on('change', categoryHandler);
 		
 		entry.datetime = new Date();
 		entry.category++;
 
-		expect(datetimeHandler).to.have.been.calledWith(ENTRY.datetime, entry.datetime);
-		expect(categoryHandler).to.have.been.calledWith(ENTRY.category, entry.category);
+		expect(datetimeHandler).to.have.been.calledWith(entry, 'datetime', ENTRY.datetime, entry.datetime);
+		expect(categoryHandler).to.have.been.calledWith(entry, 'category', ENTRY.category, entry.category);
 	});
 });
