@@ -192,17 +192,17 @@ angular
 
 			if (options.store) angular.forEach(actions, function(action, name) {
 				var delegateFn = Resource[name];
-				var cachifiedFn;
+				var storifiedFn;
 				switch (action.method.toUpperCase()) {
 					case 'GET': 
-						if (action.isArray) cachifiedFn = storifyCollection(delegateFn, action.params)
-						else cachifiedFn = storifyRead(delegateFn, action.params);
+						if (action.isArray) storifiedFn = storifyCollection(delegateFn, action.params)
+						else storifiedFn = storifyRead(delegateFn, action.params);
 						break;
 					case 'POST':
-					case 'PUT': cachifiedFn = storifyWrite(delegateFn, action.params); break;
-					case 'DELETE': cachifiedFn = storifyDelete(delegateFn, action.params); break;
+					case 'PUT': storifiedFn = storifyWrite(delegateFn, action.params); break;
+					case 'DELETE': storifiedFn = storifyDelete(delegateFn, action.params); break;
 				}				
-				Resource[name] = cachifiedFn;
+				Resource[name] = storifiedFn;
 			});
 
 		 	return Resource;
