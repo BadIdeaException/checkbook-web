@@ -72,6 +72,15 @@ describe('Store', function() {
 			store.put(item);
 			expect(store.get(DEFAULT_KEYGEN.coll(coll))).to.contain(item);
 		});
+
+		it('should subscribe to item changes when created with a watchlist', function() {
+			var item = {};
+			item.on = sinon.spy();
+			store = new Store(DEFAULT_KEYGEN, ['prop']);
+			store.put(item);
+			// TODO: Go off of a provider property
+			expect(item.on).to.have.been.calledWith('change', store.onItemChanged);
+		});
 	});
 
 	describe('.remove', function() {
@@ -95,6 +104,31 @@ describe('Store', function() {
 			store.remove(DEFAULT_KEYGEN.elem(item));
 
 			expect(store.get(DEFAULT_KEYGEN.coll(coll))).to.be.empty;
-		})
+		});
+
+		it('should unsubscribe from item changes when created with a watchlist', function() {
+			const KEY = 'key';
+			var item = {};
+			item.off = sinon.spy();
+			store = new Store(DEFAULT_KEYGEN, ['prop']);
+			
+			store.items[KEY] = item;
+			store.remove(KEY);
+			expect(item.off).to.have.been.calledWith('change', store.onItemChanged);
+		});
+	});
+
+	it('should remove and re-add when the change event handler is called', function() {
+		const PROPERTY_NAME = 'prop';
+		var store = new Store(DEFAULT_KEYGEN, [ PROPERTY_NAME ]);
+		var put = sinon.stub(store, 'put');
+		var remove = sinon.stub(store, 'remove');
+
+		var item = {};
+		store.items[DEFAULT_KEYGEN.elem(item)] = item; 
+		
+		store.onItemChanged(item, PROPERTY_NAME, 'val');
+		expect(remove).to.have.been.calledWith(DEFAULT_KEYGEN.elem(item));
+		expect(put).to.have.been.calledWith(item);
 	});
 });
