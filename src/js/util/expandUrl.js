@@ -1,29 +1,31 @@
+(function() {
 "use strict";
 
-(function() {
 /**
+ * @ngdoc service
+ * @name  expandUrl
+ * @module  Checkbook.Util
+ * @description
  * Basic function to take URL templates and fill their placeholders with values. It understands a subset
  * of the functionality supported by the original $resource. This is purely intended as a workaround because
- * $resource doesn't expose its own templating mechanisms.
+ * Angular's $resource doesn't expose its own templating mechanisms. See the [Angular documentation on $resource](https://docs.angularjs.org/api/ngResource/service/$resource)
+ * for more on template syntax and param object definition.
  *
  * The following is supported:
- * - Optional protocol and domain, i.e. https://www.example.com:8080/path/to/resource works. No validity checks are done on the URL, rather
+ * - Optional protocol and domain, i.e. `https://www.example.com:8080/path/to/resource` works. No validity checks are done on the URL, rather
  * it is assumed that everything up to the first single slant is part of the protocol and domain 
- * - Parameter object can contain literals, accessor expressions ('`@propertyName`'') and functions
+ * - Parameter object can contain literals, accessor expressions ("`@propertyName`") and functions
  *
  * The following is not supported:
- * - Nested property accessors, i.e. '`@someObject.property`' will not work
+ * - Nested property accessors, i.e. "`@someObject.property`" will not work
  * - Multiple appearance of a placeholder will result in only the first one being filled
  * - URLs containing a fragment (#): The fragment part will be dropped
  * 
- * NOTE: This function does not encode special characters as they would normally be.
- * But since these are only going to be used as store keys, that shouldn't matter
+ * NOTE: This function does not URI-encode special characters.
  *
  * @param {string} url The URL template to expand.
- * @param params Placeholder mappings
- * @param data Object to read values from if `params` contains property accessors
- *                    
- * See {@link https://docs.angularjs.org/api/ngResource/service/$resource|the Angular documentation on $resource} for specifics on these params.
+ * @param {Object} params Placeholder mappings
+ * @param {Object=} data An object to read values from if `params` contains property accessors
  *
  * @return {string} The URL template with all placeholders replaced by values.
  */

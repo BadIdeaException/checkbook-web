@@ -42,7 +42,7 @@ angular
 		 * @param {Object=} paramDefaults &nbsp;
 		 * @param {Object=} actions &nbsp;
 		 * @param  {Object=} options In addition to the options understood by the delegate version, the following are available:
-		 * - **`readonly`** - {boolean=} - If `true`, the resource will only have actions with method GET or HEAD
+		 * - **`readOnly`** - {boolean=} - If `true`, the resource will only have actions with method GET or HEAD
 		 * - **`store`** - {boolean|{@link Store}} - If `true`, a `Store` object will be created and used to store resource instances. The created
 		 * store will use URLs as keys. If a `Store` object, it will be used. Even though this closely
 		 * resembles a cache, the term is avoided because it implies the result of querying a cache will always be either the same as

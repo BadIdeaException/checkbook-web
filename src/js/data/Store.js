@@ -65,7 +65,7 @@ angular
 			 * @param {Object} keygen Key generator to use. It must have methods `elem` and `coll` as `function(item)`, which provide a key
 			 * for an element and a collection respectively. When `coll` is called with an element, it must return the key of the element's
 			 * associated collection. It throws a `TypeError` if `keygen` isn't an object with methods `elem` and `coll`
-			 * @param {Array.<string>} watchlist An array of property names to watch for changes. If this parameter is omitted, 
+			 * @param {Array.<string>=} watchlist An array of property names to watch for changes. If this parameter is omitted, 
 			 * keys are assumed to be fixed, and no attempt will be made to subscribe to property change events. 
 			 * @throw {TypeError} If `keygen` isn't an object with methods `elem` and `coll`
 			 */
@@ -89,9 +89,13 @@ angular
 			 * @ngdoc method
 			 * @name  Store#put
 			 * @description
-			 * Puts an item into the store. If the item is an element, and the element's associated collection is
+			 * Puts an item into the store. 
+			 * 
+			 * If the item is an element, and the element's associated collection is
 			 * present in the store (as determined by calling `keygen.coll`), the element will be appended to that
-			 * collection. If the item is a collection, all elements in the collection are put into the store as well. 
+			 * collection. 
+			 * 
+			 * If the item is a collection, all elements in the collection are put into the store as well. 
 			 * Elements that are already present are not overwritten. Elements already in the store are re-examined and,
 			 * if appropriate, added to the collection. 
 			 *
