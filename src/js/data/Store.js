@@ -129,7 +129,7 @@ angular
 				// should be contained in, add it to the collection as well
 				if (!isCollection(item) && self.has(self.keygen.coll(item))) {
 					var coll = self.get(self.keygen.coll(item));
-					if (coll.indexOf(item) === -1) // THIS WILL ONLY WORK IF ITEMS ARE OBJECTS
+					if (coll.indexOf(item) === -1) 
 						coll.push(item);
 				}
 			};

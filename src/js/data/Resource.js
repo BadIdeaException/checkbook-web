@@ -15,7 +15,7 @@ angular
 			'delete': { method: 'DELETE' } 
 		};
 	}])
-	.decorator('$resource', [ '$delegate', '$cacheFactory', '$q', 'expandUrl', function($delegate, $cacheFactory, $q, expandUrl) {
+	.decorator('$resource', [ '$delegate', 'Store', '$q', 'expandUrl', function($delegate, Store, $q, expandUrl) {
 		/*
 		 * Removes all action methods (both static and instance versions) from `Resource` that are using
 		 * methods other than GET or HEAD.
@@ -50,6 +50,14 @@ angular
 		 * @return {Object} The resource constructor created by Angular's $resource factory and decorated
 		 */
 		var decorated = function(url, paramDefaults, actions, options) {			
+			var URL_KEYGEN = {
+				elem: expandUrl.bind(null, url, paramDefaults),
+				coll: function(item) { 
+					item = angular.copy(item);
+					delete item.id;
+					return expandUrl(url, paramDefaults, item);					
+				}
+			}
 			// Make sure actions param is defined and make a copy so we can safely modify
 			actions = angular.extend({}, resourceProviderDefaultActions, actions);
 			options = options || {};
@@ -64,8 +72,10 @@ angular
 
 			
 
-			if (angular.isObject(options.store)) // If a Store object was provided, use it
-				Resource.store = options.store;
+			if (options.store === true) // If options.store is true...
+				Resource.store = new Store(URL_KEYGEN) // create a store using URLs as keys
+			else if (angular.isObject(options.store)) // otherwise if a Store object was provided...				
+				Resource.store = options.store; // ...use it
 			
 
 
@@ -105,6 +115,7 @@ angular
 					// Calculate effective parameters
 					params = angular.extend({}, paramDefaults, actionParams, params);
 					// Attempt to read from store, if store is available
+					// TODO: Is there any way to make this more general using the store's keygen? Currently this only works if the store uses URLs as keys...
 					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
 					if (result) {
 						$q.when(result, success); // Call success callback asynchronously
@@ -123,6 +134,7 @@ angular
 				};
 			}	
 
+			// TODO: This can go. Adding collection elements is already handled by the store, and other than that, it does the exact same thing as storifyRead.
 			function storifyCollection(delegateFn, actionUrl, actionParams) {
 				return function(params, success, error) {
 					// Calculate effective parameters

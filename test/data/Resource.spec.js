@@ -60,8 +60,13 @@ describe('Resource', function() {
 		expect(resource).to.not.respondTo('$post');
 	});
 
-	it('should use a store object passed in options.store', inject(function($cacheFactory) {		
-		var store = $cacheFactory();
+	it('should create a store object if options.store is true, or use a store object passed in options.store', inject(function($cacheFactory) {		
+		// Part 1: Create a store if options.store is true
+		var Resource = $resource('/', null, null, { store: true });
+		expect(Resource.store).to.exist;
+
+		// Part 2: use a provided store
+		var store = {};
 		Resource = $resource('/', {}, {}, { store: store });
 		expect(Resource.store).to.equal(store);
 	}));
@@ -96,7 +101,7 @@ describe('Resource', function() {
 		var Resource, store;
 
 		beforeEach(function() {
-			Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
+			Resource = $resource('/:id', { id: '@id' }, null, { store: {} }); // Use angularjs Cache as a simple mock store
 			store = Resource.store;
 		});
 
@@ -105,7 +110,8 @@ describe('Resource', function() {
 			resource.$promise = $q.resolve(resource); // A real resource in the store would have the $promise set, because 
 													  // the only way to get into the store is through server interaction
 
-			store.put('/', resource);
+			store.get = sinon.stub().returns(resource);
+			// store.put('/', resource);
 
 			$httpBackend
 				.expectGET('/')
@@ -124,96 +130,76 @@ describe('Resource', function() {
 			$httpBackend
 				.expectGET('/')
 				.respond(200, RESPONSE);
+			store.get = sinon.stub().returns(undefined); // Make initial store hit fail
+			store.put = sinon.spy();
 
 			var returned = Resource.get(); 
 			$httpBackend.flush();
 
-			expect(store.get('/')).to.equal(returned);
-		});
-
-		it('should store collection items as well as the collection', function() {
-			const RESPONSE = [ { id: 1 }, { id: 2 } ];
-
-			$httpBackend
-				.expectGET('/')
-				.respond(200, RESPONSE);
-
-			var collection = Resource.query();
-			$httpBackend.flush();
-			
-			expect(Resource.store.get('/')).to.equal(collection);
-			expect(Resource.store.get('/' + RESPONSE[0].id)).to.equal(collection[0]);
-			expect(Resource.store.get('/' + RESPONSE[1].id)).to.equal(collection[1]);
+			expect(store.put).to.have.been.calledWith(returned);			
 		});
 	});
 
 	describe('POST/PUT', function() {
-		it('should write the item to the store when creating', function() {
+		var Resource, store;
+		beforeEach(function() {
+			Resource = $resource('/:id', { id: '@id' }, null, { store: {} });
+			store = Resource.store;
+		});
+
+		it('should write the resource to the store when creating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			var resource = new Resource();
 
 			$httpBackend
 				.expectPOST('/')
 				.respond(201, angular.merge({}, resource, { id: ID }));
+			store.put = sinon.spy();
 
 			var returned;
 			resource.$create(resource).then(function(r) { returned = r }); // Instance methods return promise directly
 
 			$httpBackend.flush();
 
-			expect(Resource.store.get('/' + ID)).to.equal(returned);						
+			expect(store.put).to.have.been.calledWith(resource);
 		});
 
-		it('should write the item to the store when updating', function() {
+		it('should write the resource to the store when updating', function() {
 			const ID = 1;
 
-			var Resource = $resource('/:id', { id: '@id' }, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
 			var resource = new Resource({ id: ID});
 
 			$httpBackend
 				.expectPUT('/' + ID)
 				.respond(200, angular.copy(resource));
+			store.put = sinon.spy();
 
 			var returned;
 			resource.$update(resource).then(function(r) { returned = r }); // Instance methods return promise directly
 
 			$httpBackend.flush();
-
-			expect(Resource.store.get('/' + ID)).to.equal(returned);				
+			expect(store.put).to.have.been.calledWith(resource);			
 		});
 	});
 
 	describe('DELETE', function() {
-		it('should remove the item from the store', function() {
-			var Resource = $resource('/', null, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
+		it('should remove the resource from the store', function() {
+			const URL = '/';
+			var Resource = $resource(URL, null, null, { store: {} }); // Use angularjs Cache as a simple mock store
+			var store = Resource.store;
 			var resource = new Resource();
 
 			$httpBackend
 				.expectDELETE('/')
 				.respond(204);
+			store.remove = sinon.spy();
 
 			resource.$delete();
 			$httpBackend.flush();
 
-			expect(Resource.store.get('/')).to.not.exist;
+			expect(store.remove).to.have.been.calledWith(URL)
 		});
 	});
 
-	it('should subsequently read from the store when getting', function() {
-		const RESPONSE = { id: 1 };
-		var Resource = $resource('/', null, null, { store: $cacheFactory() }); // Use angularjs Cache as a simple mock store
-		$httpBackend
-			.expectGET('/')
-			.respond(200, RESPONSE);
-
-		var resource1 = Resource.get();
-		expect($httpBackend.flush).to.not.throw();
-
-		var resource2 = Resource.get();
-		expect($httpBackend.flush).to.throw();
-
-		expect(resource1).to.equal(resource2);
-	});
 });
