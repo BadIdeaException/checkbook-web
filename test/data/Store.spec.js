@@ -56,13 +56,22 @@ describe('Store', function() {
 			expect(store.items[COLL_KEY]).to.equal(x);
 		});
 
-		it('should add all elements of a collection', function() {
+		it('should add all collection elements as well', function() {
 			var coll = [ { id: 1 }, { id: 2} ];
 
 			store.put(coll);
 			expect(store.items[DEFAULT_KEYGEN.coll(coll)]).to.equal(coll); // Collection itself should have been added
 			for (var i = 0; i < coll.length; i++) 
 				expect(store.items[DEFAULT_KEYGEN.elem(coll[i])]).to.equal(coll[i]); // All items should have been added		
+		});
+
+		it('should not overwrite elements that are already there when adding collection elements', function() {
+			var coll = [ { id: 1 } ];
+			var elem = { id: 1 }; // NOT identical with the one in coll (two distinct objects)
+
+			store.put(elem);
+			store.put(coll);
+			expect(store.get(store.keygen.elem(elem))).to.equal(elem);
 		});
 
 		it('should add elements into already present collections', function() {
@@ -80,6 +89,16 @@ describe('Store', function() {
 			store.put(item);
 			// TODO: Go off of a provider property
 			expect(item.on).to.have.been.calledWith('change', store.onItemChanged);
+		});
+
+		it('should add already present elements when their associated collection is added', function() {
+			var coll = [];
+			var elem = { id: 1 };
+
+			store.put(elem);
+			store.put(coll);
+
+			expect(coll).to.include(elem);
 		});
 	});
 
