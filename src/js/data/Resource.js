@@ -135,39 +135,6 @@ angular
 				};
 			}	
 
-			// TODO: This can go. Adding collection elements is already handled by the store, and other than that, it does the exact same thing as storifyRead.
-			function storifyCollection(delegateFn, actionUrl, actionParams) {
-				return function(params, success, error) {
-					// Calculate effective parameters
-					params = angular.extend({}, paramDefaults, actionParams, params);
-					// Attempt to read from store, if store is available
-					var result = Resource.store && Resource.store.get(expandUrl(actionUrl, params));
-					if (result) {
-						$q.resolve(result, success); // Call success callback asynchronously
-						return result;
-					}
-
-					// Otherwise call through to delegate function
-					result = delegateFn.apply(this, arguments);
-					var promise = result.$promise || result; // Instance calls return the promise directly
-					promise.then(function(collection) {
-						if (Resource.store) {
-							// Store result if store is available
-							Resource.store.put(collection);
-							// Store collection elements individually
-							var elementGetAction = actions.get || {};
-							var elementParams = angular.extend({}, paramDefaults, elementGetAction.params, params);
-							collection.forEach(function(element) {
-								Resource.store.put(element);
-							});
-						}
-						return collection;
-					});
-					return result;
-
-				};
-			}
-
 			function storifyWrite(delegateFn, actionUrl, actionParams) {
 				return function(params, data, success, error) {			
 					// Calculate effective parameters
@@ -203,10 +170,7 @@ angular
 				var delegateFn = Resource[name];
 				var storifiedFn;
 				switch (action.method.toUpperCase()) {
-					case 'GET': 
-						if (action.isArray) storifiedFn = storifyCollection(delegateFn, action.url || url, action.params)
-						else storifiedFn = storifyRead(delegateFn, action.url || url, action.params);
-						break;
+					case 'GET': storifiedFn = storifyRead(delegateFn, action.url || url, action.params); break;
 					case 'POST':
 					case 'PUT': storifiedFn = storifyWrite(delegateFn, action.url || url, action.params); break;
 					case 'DELETE': storifiedFn = storifyDelete(delegateFn, action.url || url, action.params); break;
