@@ -38,12 +38,13 @@ angular
 		 * can make resources read-only, has an `update` action (HTTP PUT) by default and has built-in support for using a {@link Store}.
 		 * 
 		 * See the [Angular documentation on $resource](https://docs.angularjs.org/api/ngResource/service/$resource/) for specifics on the params and return value.
-		 * @param {String} url
+		 * @param {string} url
 		 * @param {Object=} paramDefaults &nbsp;
 		 * @param {Object=} actions &nbsp;
 		 * @param  {Object=} options In addition to the options understood by the delegate version, the following are available:
-		 * - **`readonly`** - {Boolean=} - If `true`, the resource will only have actions with method GET or HEAD
-		 * - **`store`** - {{@link Store}} - If a `Store` object, it will be used to store resource instances. Even though this closely
+		 * - **`readonly`** - {boolean=} - If `true`, the resource will only have actions with method GET or HEAD
+		 * - **`store`** - {boolean|{@link Store}} - If `true`, a `Store` object will be created and used to store resource instances. The created
+		 * store will use URLs as keys. If a `Store` object, it will be used. Even though this closely
 		 * resembles a cache, the term is avoided because it implies the result of querying a cache will always be either the same as
 		 * that obtained from the server, or the server will have newer data. Here, on the contrary, the newer data may be the version in
 		 * the store.
@@ -71,7 +72,7 @@ angular
 				removeWriteActions(Resource, actions);
 
 			
-
+			// Create/set a store, if necessary
 			if (options.store === true) // If options.store is true...
 				Resource.store = new Store(URL_KEYGEN) // create a store using URLs as keys
 			else if (angular.isObject(options.store)) // otherwise if a Store object was provided...				
