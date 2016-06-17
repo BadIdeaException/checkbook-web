@@ -161,12 +161,16 @@ angular
 			Store.prototype.remove = function(key) {
 				var self = this;
 				var item = self.items[key];
-				delete self.items[key];
+				delete self.items[key];				
 
-				if (self.watchlist && !isCollection(item))
+				// If the item had actually been contained in this store, and there is a watchlist, and 
+				// the item is an element, unsubscribe from property change events
+				if (item && self.watchlist && !isCollection(item))
 					item.off(provider.defaults.changeEvent, self.onItemChanged);
 
-				if (!isCollection(item) && self.has(self.keygen.coll(item))) {
+				// If the item had actually been contained in this store, and it is an element, and
+				// its associated collection is also contained in this store, remove it from the collection
+				if (item && !isCollection(item) && self.has(self.keygen.coll(item))) {
 					var coll = self.get(self.keygen.coll(item));
 					if (coll.indexOf(item) > -1) // This should always be the case
 						coll.splice(coll.indexOf(item), 1);
