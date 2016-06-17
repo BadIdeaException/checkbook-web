@@ -97,6 +97,29 @@ describe('Resource', function() {
 		update.restore();
 	});
 
+	it('should update itself when calling $create or $update', function() {
+		const CREATE_RESPONSE = { id: 1, prop: 1 };
+		const UPDATE_RESPONSE = { id: 1, prop: 2 };
+		var Resource = $resource('/', null, null, null);
+		var resource = new Resource();
+
+		$httpBackend
+			.expectPOST('/')
+			.respond(CREATE_RESPONSE);
+
+		resource.$save(); // will do 'create'
+		$httpBackend.flush();
+		expect(resource).to.have.property('prop', CREATE_RESPONSE.prop);
+		
+		$httpBackend
+			.expectPUT('/')
+			.respond(UPDATE_RESPONSE);
+
+		resource.$save(); // will do 'update'
+		$httpBackend.flush();
+		expect(resource).to.have.property('prop', UPDATE_RESPONSE.prop);
+	});
+
 	describe('GET', function() {
 		var Resource, store;
 

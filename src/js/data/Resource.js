@@ -81,7 +81,7 @@ angular
 
 			// This instance method will not be present if options.readOnly flag is set
 			Resource.prototype.$save = !options.readOnly && function(params, success, error) {
-				return Resource.save(params, this, success, error);
+				return Resource.save.call(this, params, this, success, error);
 			}
 			
 			Resource.save = 
@@ -103,9 +103,9 @@ angular
 							data = params; success = data; error = success, params = {};
 						}
 						if (data.id || data.id === 0)
-							return Resource.update(arguments);
+							return Resource.update.apply(this, arguments);
 						else
-							return Resource.create(arguments);
+							return Resource.create.apply(this, arguments);
 					}
 
 
