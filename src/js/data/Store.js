@@ -19,9 +19,12 @@ angular
 		 * Object containing default options when creating @{link Store} objects. The available properties are:
 		 * - **changeEvent** - {String} - The name of the event that mutable-key items emit when one of their watched properties
 		 * changes. The default value is `change`, but it can be reconfigured to avoid clashes with other frameworks.
+		 * - **isCollection** - {Function} - The default `isCollection` function to use when constructing new `Store` instances. 
+		 * Defaults to [`angular.isArray`](https://docs.angularjs.org/api/ng/function/angular.isArray).
 		 */
 		provider.defaults = {
-			changeEvent: 'change'
+			changeEvent: 'change',
+			isCollection: angular.isArray
 		};		
 
 		provider.$get = function() {
@@ -69,9 +72,7 @@ angular
 			 * keys are assumed to be fixed, and no attempt will be made to subscribe to property change events. 
 			 * @throw {TypeError} If `keygen` isn't an object with methods `elem` and `coll`
 			 */
-			
-			var isCollection = angular.isArray;
-
+						
 			function Store(keygen, watchlist) {
 				var self = this;
 				if (!keygen)
@@ -81,6 +82,15 @@ angular
 
 				self.items = {};
 
+				/**
+				 * @ngdoc property
+				 * @name  Store#isCollection
+				 * @description
+				 * Function that will be used to determine if an item is a collection or an element. Must take an `item` as parameter
+				 * and return `true` if and only if that item is a collection.
+				 * @type {Function}
+				 */
+				self.isCollection = provider.defaults.isCollection;
 				self.keygen = keygen;
 				self.watchlist = watchlist;
 			}		
@@ -109,7 +119,7 @@ angular
 
 				if (!item) { // No key was passed
 					item = key; 
-					key = isCollection(item) ? self.keygen.coll(item) : self.keygen.elem(item);
+					key = self.isCollection(item) ? self.keygen.coll(item) : self.keygen.elem(item);
 				}
 
 				if (typeof item !== 'object') throw new TypeError('Item was not an object: ' + typeof item + ' ' + item);
@@ -117,16 +127,16 @@ angular
 				self.items[key] = item;
 				
 				// When adding a collection, check all elements to see if they should be included in the new collection
-				if (isCollection(item)) 
+				if (self.isCollection(item)) 
 					angular.forEach(self.items, function(other) {
-						if (!isCollection(other))
+						if (!self.isCollection(other))
 							// If the new collection is the one for the element, and the element isn't already contained, add it
 							if (self.keygen.coll(other) === key && item.indexOf(other) === -1)
 								item.push(other); 
 					});
 
 				// When adding a collection, add all elements of that collection as well
-				if (isCollection(item)) {
+				if (self.isCollection(item)) {
 					item.forEach(function(element) { 
 						var key = self.keygen.elem(element);
 						if (!self.has(key)) // Don't overwrite elements that are already there
@@ -136,12 +146,12 @@ angular
 
 				// Watching for property changes => mutable keys.
 				// Subscribe to changes on the item
-				if (self.watchlist && !isCollection(item))
+				if (self.watchlist && !self.isCollection(item))
 					item.on(provider.defaults.changeEvent, self.onItemChanged);
 
 				// When we add an element, and there is a collection that this element
 				// should be contained in, add it to the collection as well
-				if (!isCollection(item) && self.has(self.keygen.coll(item))) {
+				if (!self.isCollection(item) && self.has(self.keygen.coll(item))) {
 					var coll = self.get(self.keygen.coll(item));
 					if (coll.indexOf(item) === -1) 
 						coll.push(item);
@@ -179,12 +189,12 @@ angular
 
 				// If the item had actually been contained in this store, and there is a watchlist, and 
 				// the item is an element, unsubscribe from property change events
-				if (item && self.watchlist && !isCollection(item))
+				if (item && self.watchlist && !self.isCollection(item))
 					item.off(provider.defaults.changeEvent, self.onItemChanged);
 
 				// If the item had actually been contained in this store, and it is an element, and
 				// its associated collection is also contained in this store, remove it from the collection
-				if (item && !isCollection(item) && self.has(self.keygen.coll(item))) {
+				if (item && !self.isCollection(item) && self.has(self.keygen.coll(item))) {
 					var coll = self.get(self.keygen.coll(item));
 					if (coll.indexOf(item) > -1) // This should always be the case
 						coll.splice(coll.indexOf(item), 1);
