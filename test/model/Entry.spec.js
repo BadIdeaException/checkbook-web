@@ -8,7 +8,7 @@ describe('Entry', function() {
 
 	beforeEach(inject(function($injector) {
 		Entry = $injector.get('Entry');
-		$httpBackend = $injector.get('$httpBackend');
+		$httpBackend = $injector.get('$httpBackend');		
 	}));
 
 	describe('.querySpecific', function() {
@@ -19,13 +19,14 @@ describe('Entry', function() {
 		it('should GET the correct route when calling querySpecific', function() {
 			var monthid = 0;
 			var category = 1;
+			var url = '/months/' + monthid + '/categories/' + category + '/entries';
 
 			$httpBackend
-				.expectGET('/months/' + monthid + '/categories/' + category + '/entries')
-				.respond(200, [ ENTRY ]);
+				.expectGET(url)
+				.respond(200, [ ENTRY ], { location: url });
 
 			Entry.querySpecific({ monthid: monthid, category: category });
-			expect($httpBackend.flush).to.not.throw();
+			expect($httpBackend.flush).to.not.throw();						
 		});
 	});
 
@@ -62,5 +63,22 @@ describe('Entry', function() {
 
 		expect(datetimeHandler).to.have.been.calledWith(entry, 'datetime', ENTRY.datetime, entry.datetime);
 		expect(categoryHandler).to.have.been.calledWith(entry, 'category', ENTRY.category, entry.category);
+	});
+
+	it('should store entries from querySpecific so they can be retrieved with the get action', function() {
+		const URL = '/months/0/categories/' + ENTRY.category + '/entries';
+		$httpBackend
+			.expectGET(URL)
+			.respond(200, [ ENTRY ], { location: URL });
+
+		// Get list of resources from /months/.../entries URL
+		var entries = Entry.querySpecific({ monthid: 0, category: ENTRY.category });
+		$httpBackend.flush();
+		var entry1 = entries[0];
+
+		// Get the entry from /entries/:id
+		var entry2 = Entry.get({ id: entry1.id }); // Using ENTRY as params object here
+		expect($httpBackend.flush).to.throw();
+		expect(entry1).to.equal(entry2);
 	});
 });

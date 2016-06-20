@@ -1,67 +1,95 @@
-angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter', function($resource, eventEmitter) {
-	var _Entry = $resource(
-		'/entries/:id',
-		{ id: '@id' },
+angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter', 'expandUrl', 'Store', function($resource, eventEmitter, expandUrl, Store) {
+	const PRIMARY_URL = '/entries/:id';
+	const PRIMARY_URL_PARAMS = { id: '@id' };
+	const SECONDARY_URL = '/months/:monthid/categories/:category/entries/:id';
+	const SECONDARY_URL_PARAMS = { monthid: '@monthid', category: '@category', id: '@id' };
+
+	/**
+	 * Special Store to deal with the complication that the `Entry` resource is accessible through two different
+	 * URL spaces: `/entries/:id` and `/months/:monthid/categories/:category/entry/:id`.
+	 * It stores collections under their actual URLs, but always stores elements under the primary URL 
+	 * (i.e. /entries/:id). Thus, even entries adding from adding a collection gotten through the secondary URL
+	 * will be found by the store on subsequent requests to the primary URL.
+	 *
+	 * Entries are associated with both collections. 
+	 */
+	var entryStore = new Store(
+		function keygen(item) {			
+			if (this.isCollection(item))
+				if ((item.monthid || item.monthid === 0) && (item.category || item.category === 0))
+					return expandUrl(SECONDARY_URL, SECONDARY_URL_PARAMS, item);
+			return expandUrl(PRIMARY_URL, PRIMARY_URL_PARAMS, item);
+		},
+		function associate(entry) {
+			var secondary = expandUrl(SECONDARY_URL, SECONDARY_URL_PARAMS, entry);
+			secondary = secondary.substring(0, secondary.lastIndexOf('/') + 1); // +1: second substring parameter is offset of first character not included in result
+			return [
+				'/entries',
+				secondary
+			]
+		}, 
+		[ 'datetime', 'category' ]);
+
+	var Entry = $resource(
+		PRIMARY_URL,
+		PRIMARY_URL_PARAMS,
 		{ 
 			// Query to the /months/:monthid/categories/:category/entries endpoint to get all entries
 			// for a specific month and category.
 			querySpecific: {
 				method: 'GET',
-				url: '/months/:monthid/categories/:category/entries',
-				isArray: true				
+				url: SECONDARY_URL,
+				isArray: true,
+				transformResponse: [ angular.fromJson, function(data, headers) {
+					var matches = /months\/(\d+)\/categories\/(\d+)\/entries/i.exec(headers('location'));
+					data.monthid = Number(matches[1]); 
+					data.category = Number(matches[2]); 									
+					return data; 
+					// TODO: This doesn't actually work - the monthid and category properties set by this function
+					// are not present in the result returned by querySpecific. 
+					// Filed bug report at https://github.com/angular/angular.js/issues/14797					
+				} ]
 			}
-		});
+		},
+		{ store: entryStore });
 
-	// Wrap the constructor created by the $resource factory function in one of our own to allow adding
-	// some virtual properties to the constructed object. 
-	// To achieve this, we call through to the original constructor, copy over static methods from the
-	// original to the new construtctor and set the wrapped prototype to be the same as the original one.
-	function Entry() {
-		var self = this;
+	eventEmitter.inject(Entry);
 
-		// Call through to constructor created by $resource
-		_Entry.apply(self, arguments);
+	// Create properties datetime and category to allow for event emission	
+	Object.defineProperty(Entry.prototype, 'datetime', {
+		enumerable: true,
+		get: function() { return this._datetime; },
+		set: function(datetime) { 
+			var self = this;					
+			var old = self._datetime; // Remember old value for event emission
+			self._datetime = datetime;
+			if (old && datetime && old.getTime() !== datetime.getTime() || !old && datetime || !datetime && old) // Was there actually a change?
+				self.emit('change', self, 'datetime', old, datetime);
+		}		
+	});
+	Object.defineProperty(Entry.prototype, 'category', {
+		enumerable: true,
+		get: function() { return this._category; },
+		set: function(category) {
+			var self = this;
+			var old = self._category; // Remember old value for event emission
+			self._category = category;
+			if (old !== category) // Was there actually a change?
+				self.emit('change', self, 'category', old, category);
+		}
+	});
+	// Create read-only property monthid
+	// (Needs to be a property so we can use it in url expansion)
+	Object.defineProperty(Entry.prototype, 'monthid', {
+		enumerable: true,
+		get: function() { 
+			var self = this;
 
-		// At any rate, category HAS to be a virtual settable property in order to fire events on change (allow the model tree to update itself)
-		var _category = self.category; // category field may have already been set by _Entry constructor
-		Object.defineProperty(self, 'category', {
-				enumerable: true,				
-				get: function() { return _category; },
-				set: function(category) {
-					var self = this;
-					var old = _category; // Remember old value for event emission
-					_category = category;
-					if (old !== category) // Was there actually a change?
-						self.emit('change', self, 'category', old, category);
-				}
-		});
-
-		var _datetime = self.datetime; // datetime field may have already been set by _Entry constructor
-		Object.defineProperty(self, 'datetime', {
-				enumerable: true,
-				get: function() { return _datetime; },
-				set: function(datetime) { 
-					var self = this;					
-					var old = _datetime; // Remember old value for event emission
-					_datetime = datetime;
-					if (old && datetime && old.getTime() !== datetime.getTime() || !old || !datetime) // Was there actually a change?
-						self.emit('change', self, 'datetime', old, datetime);
-				}		
-		});
-	}
-
-	// Copy over static methods
-	angular.merge(Entry, _Entry);
-	// Preserve prototype as generated by $resource
-	Entry.prototype = _Entry.prototype;
-
-	Entry.prototype.getMonthId = function() {
-		var self = this;
-
-		var month = self.datetime.getMonth();
-		var year = self.datetime.getFullYear();
-		return (year - 1970) * 12 + month;
-	}
+			var month = self.datetime.getMonth();
+			var year = self.datetime.getFullYear();
+			return (year - 1970) * 12 + month;
+		}
+	});
 
 	/**
 	 * Will return true if other is an Entry with identical
@@ -76,8 +104,6 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 			self.datetime.getTime() === other.datetime.getTime() &&
 			self.details === other.details;
 	}
-
-	eventEmitter.inject(Entry);
 
 	return Entry;
 }]);
