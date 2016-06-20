@@ -65,28 +65,56 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 
 	eventEmitter.inject(Entry);
 
-	// Create properties datetime and category to allow for event emission	
+	// Create properties datetime and category to allow for event emission
+	// Actually, what we're doing is, we're creating property "proxies" on the prototype. The proxies then create
+	// the actual properties on the instances the first time they're accessed.
+
+	/**
+	 * Function that creates the actual datetime property on the passed instance. It will be called the first
+	 * time the datetime property is accessed on the *prototype*.
+	 * @param  {Object} instance The instance on which to create the property	 
+	 */
+	function makeDatetimeProperty(instance) {
+		var _datetime;
+		Object.defineProperty(instance, 'datetime', {
+			enumerable: true,
+			configurable: true,
+			get: function() { return _datetime; },
+			set: function(datetime) {
+				var self = this;					
+				var old = _datetime; // Remember old value for event emission
+				_datetime = datetime;
+				if (old && datetime && old.getTime() !== datetime.getTime() || !old && datetime || !datetime && old) // Was there actually a change?
+					self.emit('change', self, 'datetime', old, datetime);
+				}
+		});
+	}
+	function makeCategoryProperty(instance) {
+		var _category;
+		Object.defineProperty(instance, 'category', {
+			enumerable: true,
+			configurable: true,
+			get: function() { return _category; },
+			set: function(category) {
+				var self = this;
+				var old = _category; // Remember old value for event emission
+				_category = category;
+				if (old !== category) // Was there actually a change?
+					self.emit('change', self, 'category', old, category);
+			}
+		});		
+	}
 	Object.defineProperty(Entry.prototype, 'datetime', {
 		enumerable: true,
-		get: function() { return this._datetime; },
-		set: function(datetime) { 
-			var self = this;					
-			var old = self._datetime; // Remember old value for event emission
-			self._datetime = datetime;
-			if (old && datetime && old.getTime() !== datetime.getTime() || !old && datetime || !datetime && old) // Was there actually a change?
-				self.emit('change', self, 'datetime', old, datetime);
-		}		
+		configurable: true,
+		get: function() { makeDatetimeProperty(this); return this.datetime; },
+		set: function(datetime) { makeDatetimeProperty(this); this.datetime = datetime; }	
 	});
 	Object.defineProperty(Entry.prototype, 'category', {
 		enumerable: true,
-		get: function() { return this._category; },
-		set: function(category) {
-			var self = this;
-			var old = self._category; // Remember old value for event emission
-			self._category = category;
-			if (old !== category) // Was there actually a change?
-				self.emit('change', self, 'category', old, category);
-		}
+		configurable: true,
+		get: function() { makeCategoryProperty(this); return this.category; },
+		set: function(category) { makeCategoryProperty(this); this.category = category; }
 	});
 	// Create read-only property monthid
 	// (Needs to be a property so we can use it in url expansion)

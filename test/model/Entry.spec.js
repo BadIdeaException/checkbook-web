@@ -42,6 +42,34 @@ describe('Entry', function() {
 		expect(entry.equals(different)).to.be.false;
 	});
 
+	it('should have properties datetime and category created when they are first accessed', function() {
+		var entry = new Entry();
+		// Neither datetime nor category should exist as own properties yet
+		expect(entry).to.not.have.ownProperty('datetime');
+		expect(entry).to.not.have.ownProperty('category');
+		// They should be visible on the prototype chain however
+		expect(entry).to.have.property('datetime');
+		expect(entry).to.have.property('category');
+
+		// Read access
+		entry.datetime;
+		entry.category;
+
+		// Now both should be available as own properties
+		expect(entry).to.have.ownProperty('datetime');
+		expect(entry).to.have.ownProperty('category');
+
+		// Check it also works with write access
+		entry = new Entry();
+		entry.datetime = new Date(0);
+		entry.category = 1;
+		expect(entry).to.have.ownProperty('datetime');
+		expect(entry).to.have.ownProperty('category');
+		// Check that the values were set
+		expect(entry.datetime.getTime()).to.equal(new Date(0).getTime());
+		expect(entry.category).to.equal(1);
+	});
+
 	it('should be an event emitter', function() {
 		var entry = new Entry(ENTRY);
 
