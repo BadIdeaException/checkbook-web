@@ -15,18 +15,25 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 	 */
 	var entryStore = new Store(
 		function keygen(item) {			
-			if (this.isCollection(item))
-				if ((item.monthid || item.monthid === 0) && (item.category || item.category === 0))
+			// If this is a collection that has the monthid property and the category property set, it must be 
+			// one gotten from the secondary URL (/months/:monthid/categories/:category/entries). Therefore,
+			// store it under the secondary URL.
+			if (this.isCollection(item) && (item.monthid || item.monthid === 0) && (item.category || item.category === 0))
 					return expandUrl(SECONDARY_URL, SECONDARY_URL_PARAMS, item);
+
+			// Store everything else under the primary URL (both individual entry elements and the collection 
+			// gotten from /entries)
 			return expandUrl(PRIMARY_URL, PRIMARY_URL_PARAMS, item);
 		},
 		function associate(entry) {
+			var primary = expandUrl(PRIMARY_URL, PRIMARY_URL_PARAMS, entry); // Slightly overkill because after chopping off the id, 
+																			 // this will always come out to /entries/. But this way 
+																			 // we'll be futureproof if the primary URL ever changes.
 			var secondary = expandUrl(SECONDARY_URL, SECONDARY_URL_PARAMS, entry);
-			secondary = secondary.substring(0, secondary.lastIndexOf('/') + 1); // +1: second substring parameter is offset of first character not included in result
-			return [
-				'/entries',
-				secondary
-			]
+			
+			return [ primary, secondary ].map(function(key) { // Chop off :id segment from URLs
+				return key.substring(0, key.lastIndexOf('/') + 1); // +1: second substring parameter is offset of first character not included in result
+			})			
 		}, 
 		[ 'datetime', 'category' ]);
 
@@ -47,7 +54,10 @@ angular.module('Checkbook.Model').factory('Entry', [ '$resource', 'eventEmitter'
 					return data; 
 					// TODO: This doesn't actually work - the monthid and category properties set by this function
 					// are not present in the result returned by querySpecific. 
-					// Filed bug report at https://github.com/angular/angular.js/issues/14797					
+					// Filed bug report at https://github.com/angular/angular.js/issues/14797	
+					// 
+					// Currently, we have changed the angular-resource installed through bower to carry over at
+					// least the monthid and category properties
 				} ]
 			}
 		},
