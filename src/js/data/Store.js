@@ -5,11 +5,16 @@ angular
 	 * @module Checkbook.Data
 	 * @name  StoreProvider
 	 * @description
-	 * This is the provider for {@link Store}. It can be used to configure the name of the event mutable key stores expect to be 
-	 * emitted when contained item's properties change. 
+	 * This is the provider for {@link Store}. It can be used to configure properties of new stores.
 	 */
 	.provider('Store', function() {
 		var provider = this;
+
+		function makeArray(arg) {
+			if (angular.isArray(arg)) return arg; // If it is already an array, leave it alone
+			if (angular.isString(arg)) return [arg]; // If it is a string, wrap it in an array
+			if (arg === null || arg === undefined) return []; // If it is null/undefined, return an empty array
+		}
 
 		/**
 		 * @ngdoc property
@@ -18,7 +23,8 @@ angular
 		 * @description
 		 * Object containing default options when creating @{link Store} objects. The available properties are:
 		 * - **changeEvent** - {String} - The name of the event that mutable-key items emit when one of their watched properties
-		 * changes. The default value is `change`, but it can be reconfigured to avoid clashes with other frameworks.
+		 * changes. The default value is `change`, but it can be reconfigured to avoid clashes with other frameworks. Note that changing
+		 * this will only affect new stores.
 		 * - **isCollection** - {Function} - The default `isCollection` function to use when constructing new `Store` instances. 
 		 * Defaults to [`angular.isArray`](https://docs.angularjs.org/api/ng/function/angular.isArray).
 		 */
@@ -36,7 +42,7 @@ angular
 			 * A data store for RESTful resources. These can be put into, retrieved from and deleted from the store under an identifying key. 
 			 * 
 			 * Individual resources (called _elements_) are usually part of a _collection_. For instance, in a hypothetical RESTful architecture, 
-			 * individual `User` resources (elements) might be available under `/api/users/1`, while `/api/users` gives a list
+			 * individual `User` resources (elements) might be available under e.g. `/api/users/john`, while `/api/users` gives a list
 			 * of all users (the associated collection). The store automatically manages this element-collection relationship. 
 			 * This means that
 			 * 1. when an element is added to the store, and the store contains the associated collection, the element will be included
@@ -47,11 +53,15 @@ angular
 			 * 4. when a collection is removed from the store, however, its elements will *not* be removed.
 			 *
 			 * # Keys
-			 * Items are identified by unique keys, which must be strings. When creating a store, you need to provide a key generator,
-			 * which must be an object with both a `elem` and a `coll` method, that, when called, generate keys for a provided
-			 * element and collection, respectively. Additionally, `coll`, when called with an element, **must** return the key of
-			 * the collection the element is contained in (if any), even if the collection is not currently contained in the store. 
-			 * The store relies on this to manage element-collection relationship.
+			 * Items are identified by unique keys, which must be strings. When creating a store, you need to provide a key generator function
+			 * `function(item)`, which calculates and returns the key for the `item`. 
+			 *
+			 * # Association
+			 * Elements can be part of collections, and any collection that an element should belong to is called one of that element's 
+			 * _associated collections_. You must provide an association function `function associate(elem)` when creating a new store that 
+			 * determines which collections are associated with a given element. If, for instance, an element is available under
+			 * `/api/users/john` and `/api/moderators/john`, then `associate` should return the keys for both the collections `/api/users` and
+			 * `/api/moderators` for the element `john`.
 			 * 
 			 * # Mutable keys
 			 * Generally, keys are assumed to be unchanging in that changes to the item do not affect the key for that item. In cases where item
@@ -65,22 +75,24 @@ angular
 			 *
 			 * Currently, mutable keys are only supported for elements.
 			 * 
-			 * @param {Object} keygen Key generator to use. It must have methods `elem` and `coll` as `function(item)`, which provide a key
-			 * for an element and a collection respectively. When `coll` is called with an element, it must return the key of the element's
-			 * associated collection. It throws a `TypeError` if `keygen` isn't an object with methods `elem` and `coll`
+			 * @param {Function} keygen Key generator function `function(item)` to use. Returned keys must be strings.
+			 * @param {Function} associate Association function `function(elem)` to use. Given an element, it must return an array of keys
+			 * for collections the element is associated with. It is permissible to return a string instead of an array if the element is
+			 * associated with a single collection, or `null` or `undefined` if it is not associated with any.
 			 * @param {Array.<string>=} watchlist An array of property names to watch for changes. If this parameter is omitted, 
 			 * keys are assumed to be fixed, and no attempt will be made to subscribe to property change events. 
 			 * @throw {TypeError} If `keygen` isn't an object with methods `elem` and `coll`
-			 */
-						
-			function Store(keygen, watchlist) {
+			 */						
+			function Store(keygen, associate, watchlist) {
 				var self = this;
-				if (!keygen)
-					throw new TypeError('No keygen provided');
-				else if (typeof keygen.elem !== 'function' || typeof keygen.coll !== 'function')
-					throw new TypeError('keygen must have methods elem and coll');
+				if (!angular.isFunction(keygen))
+					throw new TypeError('No keygen function provided');
+				if (!angular.isFunction(associate))
+					throw new TypeError('No association function provided');
 
 				self.items = {};
+
+				var changeEvent = provider.defaults.changeEvent;
 
 				/**
 				 * @ngdoc property
@@ -92,71 +104,109 @@ angular
 				 */
 				self.isCollection = provider.defaults.isCollection;
 				self.keygen = keygen;
+				self.associate = associate;
 				self.watchlist = watchlist;
-			}		
-
-			/**
-			 * @ngdoc method
-			 * @name  Store#put
-			 * @description
-			 * Puts an item into the store. 
-			 * 
-			 * If the item is an element, and the element's associated collection is
-			 * present in the store (as determined by calling `keygen.coll`), the element will be appended to that
-			 * collection. 
-			 * 
-			 * If the item is a collection, all elements in the collection are put into the store as well. 
-			 * Elements that are already present are not overwritten. Elements already in the store are re-examined and,
-			 * if appropriate, added to the collection. 
-			 *
-			 * If a `watchlist` is defined, the store will subscribe to the added item's `change` event using `item.on`.
-			 * @param {string=} key  The key to store the item under. If provided, this will override the key generated by the 
-			 * key generator. Note that providing a key is not recommended and may break the element-collection relationship.
-			 * @param  {Object} item The item to store.
-			 */
-			Store.prototype.put = function(key, item) {
-				var self = this;
-
-				if (!item) { // No key was passed
-					item = key; 
-					key = self.isCollection(item) ? self.keygen.coll(item) : self.keygen.elem(item);
-				}
-
-				if (typeof item !== 'object') throw new TypeError('Item was not an object: ' + typeof item + ' ' + item);
-
-				self.items[key] = item;
 				
-				// When adding a collection, check all elements to see if they should be included in the new collection
-				if (self.isCollection(item)) 
-					angular.forEach(self.items, function(other) {
-						if (!self.isCollection(other))
-							// If the new collection is the one for the element, and the element isn't already contained, add it
-							if (self.keygen.coll(other) === key && item.indexOf(other) === -1)
-								item.push(other); 
-					});
+				/**
+				 * @ngdoc method
+				 * @name  Store#put
+				 * @description
+				 * Puts an item into the store. 
+				 * 
+				 * If the item is an element, and the element's associated collection is
+				 * present in the store (as determined by calling `associate`), the element will be appended to that
+				 * collection. 
+				 * 
+				 * If the item is a collection, all elements in the collection are put into the store as well. 
+				 * Elements that are already present are not overwritten. Elements already in the store are re-examined and,
+				 * if appropriate, added to the collection. 
+				 *
+				 * If a `watchlist` is defined, the store will subscribe to the added item's `change` event using `item.on`.
+				 * @param {string=} key  The key to store the item under. If provided, this will override the key generated by the 
+				 * key generator. Note that providing a key is not recommended and may break the element-collection relationship.
+				 * @param  {Object} item The item to store.
+				 */
+				self.put = function(key, item) {
+					var self = this;
 
-				// When adding a collection, add all elements of that collection as well
-				if (self.isCollection(item)) {
-					item.forEach(function(element) { 
-						var key = self.keygen.elem(element);
-						if (!self.has(key)) // Don't overwrite elements that are already there
-							self.items[key] = element; 
-					});
-				}
+					if (!item) { // No key was passed
+						item = key; 
+						key = self.keygen(item);
+					}
 
-				// Watching for property changes => mutable keys.
-				// Subscribe to changes on the item
-				if (self.watchlist && !self.isCollection(item))
-					item.on(provider.defaults.changeEvent, self.onItemChanged);
+					if (typeof item !== 'object') throw new TypeError('Item was not an object: ' + typeof item + ' ' + item);
 
-				// When we add an element, and there is a collection that this element
-				// should be contained in, add it to the collection as well
-				if (!self.isCollection(item) && self.has(self.keygen.coll(item))) {
-					var coll = self.get(self.keygen.coll(item));
-					if (coll.indexOf(item) === -1) 
-						coll.push(item);
-				}
-			};
+					// When adding a collection, check all elements to see if they should be included in the new collection
+					if (self.isCollection(item)) 
+						angular.forEach(self.items, function(other) {
+							if (!self.isCollection(other)) {
+								var associated = makeArray(self.associate(other)); // The element's associated collections
+								// If the new collection is associated with the element, and the element isn't already contained, add it
+								if (associated.indexOf(key) !== -1 && item.indexOf(other) === -1)
+									item.push(other); 
+							}
+						});
+
+					// When adding a collection, add all elements of that collection as well
+					if (self.isCollection(item)) {
+						item.forEach(function(element) { 
+							var key = self.keygen(element);
+							if (!self.has(key)) // Don't overwrite elements that are already there
+								self.put(element); // Need to self.put here because the element might be associated with other collections as well
+						});
+					}
+
+					// Watching for property changes => mutable keys.
+					// Subscribe to changes on the item
+					if (self.watchlist && !self.isCollection(item))
+						item.on(changeEvent, self.onItemChanged);
+
+					// When adding an element, add it to the associated collections as well
+					if (!self.isCollection(item))
+						makeArray(self.associate(item))
+							.forEach(function(collKey) { // For all associated collections, 
+								if (self.has(collKey)) { // if it is contained in the store,
+									var coll = self.get(collKey); 
+									if (!coll.indexOf(item) !== -1) // and the newly added item isn't contained in it
+										coll.push(item); // add it
+								}
+						});
+					self.items[key] = item;
+				};
+
+				/**
+				 * @ngdoc method
+				 * @name  Store#remove
+				 * @description
+				 * Removes an item from the store. If the item is an element, and its associated collection is
+				 * also contained in the store, it is removed from the collection. If the item is a collection,
+				 * **only** the collection is removed - its contained elements are kept in the store.
+				 *
+				 * If `watchlist` is defined, the store will unsubscribe from property change events using `item.off`.
+				 * @param  {string} key The key of the item to remove.
+				 */
+				self.remove = function(key) {
+					var self = this;
+					var item = self.items[key];
+					delete self.items[key];				
+
+					// If the item had actually been contained in this store, and there is a watchlist, and 
+					// the item is an element, unsubscribe from property change events
+					if (item && self.watchlist && !self.isCollection(item))
+						item.off(changeEvent, self.onItemChanged);
+
+					// If the item had actually been contained in this store, and it is an element, and
+					// its associated collection is also contained in this store, remove it from the collection
+					makeArray(self.associate(item))
+						.forEach(function(collKey) {
+							if (self.has(collKey)) {
+								var coll = self.get(collKey);
+								if (coll.indexOf(item) > -1) // This should always be the case, unless someone is messing with the collection outside of the store
+									coll.splice(coll.indexOf(item), 1);
+							}
+						});
+				};
+			}
 
 			/**
 			 * @ngdoc method
@@ -169,36 +219,6 @@ angular
 			Store.prototype.get = function(key) {
 				var self = this;
 				return self.items[key];
-			};
-
-			/**
-			 * @ngdoc method
-			 * @name  Store#remove
-			 * @description
-			 * Removes an item from the store. If the item is an element, and its associated collection is
-			 * also contained in the store, it is removed from the collection. If the item is a collection,
-			 * **only** the collection is removed - its contained elements are kept in the store.
-			 *
-			 * If `watchlist` is defined, the store will unsubscribe from property change events using `item.off`.
-			 * @param  {string} key The key of the item to remove.
-			 */
-			Store.prototype.remove = function(key) {
-				var self = this;
-				var item = self.items[key];
-				delete self.items[key];				
-
-				// If the item had actually been contained in this store, and there is a watchlist, and 
-				// the item is an element, unsubscribe from property change events
-				if (item && self.watchlist && !self.isCollection(item))
-					item.off(provider.defaults.changeEvent, self.onItemChanged);
-
-				// If the item had actually been contained in this store, and it is an element, and
-				// its associated collection is also contained in this store, remove it from the collection
-				if (item && !self.isCollection(item) && self.has(self.keygen.coll(item))) {
-					var coll = self.get(self.keygen.coll(item));
-					if (coll.indexOf(item) > -1) // This should always be the case
-						coll.splice(coll.indexOf(item), 1);
-				}
 			};
 
 			/**
@@ -231,7 +251,7 @@ angular
 				// Undo the change on a copy to get a valid key
 				var temp = angular.copy(item);
 				temp[property] = oldValue; 		
-				var oldKey = self.keygen.elem(temp);
+				var oldKey = self.keygen(temp);
 				if (self.watchlist && self.watchlist.indexOf(property) !== -1 && self.has(oldKey)) {				
 					self.remove(oldKey);
 					self.put(item);
