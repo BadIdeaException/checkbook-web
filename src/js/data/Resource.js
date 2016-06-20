@@ -74,7 +74,13 @@ angular
 			
 			// Create/set a store, if necessary
 			if (options.store === true) // If options.store is true...
-				Resource.store = new Store(URL_KEYGEN) // create a store using URLs as keys
+				Resource.store = new Store(
+						expandUrl.bind(null, url, paramDefaults), // Use URL as key
+						function chopOffId(resource) { // Chop off the last segment of the URL, i.e. if a resource has /path/to/resource/:id as its URL, chop off the id
+							var key = expandUrl(url, paramDefaults, resource);
+							key = key.substring(0, key.lastIndexOf('/') + 1); // +1: second parameter to substring is the 'the offset into the string of the first character not to include in the returned substring' (MDN)
+							return key;
+						}) // create a store using URLs as keys
 			else if (angular.isObject(options.store)) // otherwise if a Store object was provided...				
 				Resource.store = options.store; // ...use it
 			
