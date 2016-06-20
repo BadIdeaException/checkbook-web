@@ -1,7 +1,10 @@
 angular.module('Checkbook.Model').factory('CategoryForMonth', [ '$resource', '$q', 'Entry', 'Category', function($resource, $q, Entry, Category) {
 
-	var _CategoryForMonth = $resource('/months/:monthid/categories/:id',
-			{ monthid: '@monthid', id: '@id' });
+	var _CategoryForMonth = $resource(
+			'/months/:monthid/categories/:id',
+			{ monthid: '@monthid', id: '@id' },
+			null,
+			{ store: true });
 
 	function CategoryForMonth() {
 		var self = this;
@@ -24,9 +27,12 @@ angular.module('Checkbook.Model').factory('CategoryForMonth', [ '$resource', '$q
 	delete CategoryForMonth.prototype.$remove;
 
 	/**
+	 * @ngdoc method
+	 * @name  CategoryForMonth#fetchEntries
+	 * @description
 	 * Fetches the entries belonging to this category and month. If entries are already loaded, i.e. if 
 	 * `entries` exists, a promise resolved with the value of `entries` is returned. Otherwise,
-	 * `Entry.querySpecific` is called, the result assigned to `entries` and the contained $promise field returned.
+	 * `Entry.querySpecific` is called, the result assigned to `entries` and the contained `$promise` field returned.
 	 * @returns {Promise} A promise resolving to the entries
 	 */
 	CategoryForMonth.prototype.fetchEntries = function() {

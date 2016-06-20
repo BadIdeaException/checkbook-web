@@ -1,6 +1,9 @@
 angular.module('Checkbook.Model').factory('Month', [ '$resource', '$q', 'CategoryForMonth', function($resource, $q, CategoryForMonth) {
-	var Month = $resource('/months/:id',
-			{ id: '@id' });
+	var Month = $resource(
+			'/months/:id',
+			{ id: '@id' },
+			null,
+			{ store: true });
 
 	// Delete "write" actions (both static and instance versions)
 	delete Month.save;

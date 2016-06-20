@@ -31,41 +31,42 @@ describe('CategoryForMonth', function() {
 	describe('.fetchEntries', function() {
 		it('should hit the server when entries are not loaded', function() {
 			var category = new CategoryForMonth(CATEGORY);
-			var entryResponse = { id: 25 }; // Arbitrary response, don't need a full entry here
+			var entryResponse = { id: 25, datetime: new Date(0), category: 1 }; // Arbitrary response, don't need a full entry here
+			var url = '/months/' + category.monthid + '/categories/' + category.id + '/entries';
 
 			$httpBackend
-				.expectGET('/months/' + category.monthid + '/categories/' + category.id + '/entries')
-				.respond(200, [ entryResponse ]);
+				.expectGET(url)
+				.respond(200, [ entryResponse ], { location: url });
 
-			var pResult;
+			var entries;
 
-			var p = category
+			category
 				.fetchEntries()
-				.then(function(r) { pResult = r; });
+				.then(function(r) { entries = r; });
 
 			$httpBackend.flush();
 
-			expect(pResult).to.exist.and.have.length(1);
-			expect(pResult[0]).to.have.property('id', entryResponse.id);
+			expect(entries).to.exist.and.have.length(1);
+			expect(entries[0]).to.have.property('id', entryResponse.id);
 		});
 
-		it('should not hit the server when entries are already loaded', inject(function($rootScope) {
+		it('should not hit the server when entries are already loaded', function() {
 			var category = new CategoryForMonth(CATEGORY);
 			category.entries = [ { id: 25 } ]; // Don't need a full entry here
 
 			$httpBackend
-				.whenGET(function() { return true; }) // Match any url
+				.expectGET(function() { return true; }) // Match any url
 				.respond(function() { expect.fail('Hit the server when it shouldn\'t have'); });
 
-			var pResult;
-			var p = category
+			var entries;
+			category
 				.fetchEntries()
-				.then(function(r) { pResult = r; });
+				.then(function(r) { entries = r; });
 
-			$rootScope.$apply(); // Need to apply manually since $httpBackend.flush isn't doing it for us
-
-			expect(pResult).to.exist.and.have.length(1);
-			expect(pResult[0]).to.deep.equal(category.entries[0]);
-		}));
+			expect($httpBackend.flush).to.throw();
+		
+			expect(entries).to.exist.and.have.length(1);
+			expect(entries[0]).to.deep.equal(category.entries[0]);
+		});
 	});
 });
